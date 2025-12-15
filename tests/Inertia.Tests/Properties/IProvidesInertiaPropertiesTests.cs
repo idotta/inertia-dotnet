@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Inertia.Core;
 using Inertia.Core.Properties;
 
 namespace Inertia.Tests.Properties;
@@ -33,7 +34,7 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnEmptyDictionary()
     {
         // Arrange
-        var context = new object(); // Mock context
+        var context = new RenderContext("TestComponent", new object());
         var implementor = new TestPropertiesProviderEmpty();
 
         // Act
@@ -47,7 +48,7 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnMultipleProperties()
     {
         // Arrange
-        var context = new object(); // Mock context
+        var context = new RenderContext("TestComponent", new object());
         var implementor = new TestPropertiesProviderMultiple();
 
         // Act
@@ -64,7 +65,7 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnDifferentTypes()
     {
         // Arrange
-        var context = new object(); // Mock context
+        var context = new RenderContext("TestComponent", new object());
         var implementor = new TestPropertiesProviderVariousTypes();
 
         // Act
@@ -81,7 +82,7 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnNullValues()
     {
         // Arrange
-        var context = new object(); // Mock context
+        var context = new RenderContext("TestComponent", new object());
         var implementor = new TestPropertiesProviderWithNulls();
 
         // Act
@@ -96,7 +97,7 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_RealWorldExample()
     {
         // Arrange - Simulate a view model
-        var context = new object(); // Mock context
+        var context = new RenderContext("TestComponent", new object());
         var implementor = new UserViewModel
         {
             FirstName = "John",
@@ -119,7 +120,7 @@ public class IProvidesInertiaPropertiesTests
     // Test implementations
     private class TestPropertiesProviderEmpty : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties(object context)
+        public Dictionary<string, object?> ToInertiaProperties(RenderContext context)
         {
             return new Dictionary<string, object?>();
         }
@@ -127,7 +128,7 @@ public class IProvidesInertiaPropertiesTests
 
     private class TestPropertiesProviderMultiple : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties(object context)
+        public Dictionary<string, object?> ToInertiaProperties(RenderContext context)
         {
             return new Dictionary<string, object?>
             {
@@ -140,7 +141,7 @@ public class IProvidesInertiaPropertiesTests
 
     private class TestPropertiesProviderVariousTypes : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties(object context)
+        public Dictionary<string, object?> ToInertiaProperties(RenderContext context)
         {
             return new Dictionary<string, object?>
             {
@@ -154,7 +155,7 @@ public class IProvidesInertiaPropertiesTests
 
     private class TestPropertiesProviderWithNulls : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties(object context)
+        public Dictionary<string, object?> ToInertiaProperties(RenderContext context)
         {
             return new Dictionary<string, object?>
             {
@@ -170,7 +171,7 @@ public class IProvidesInertiaPropertiesTests
         public string Email { get; set; } = string.Empty;
         public bool IsAdmin { get; set; }
 
-        public Dictionary<string, object?> ToInertiaProperties(object context)
+        public Dictionary<string, object?> ToInertiaProperties(RenderContext context)
         {
             return new Dictionary<string, object?>
             {

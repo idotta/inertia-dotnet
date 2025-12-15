@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Inertia.Core;
 using Inertia.Core.Properties;
 
 namespace Inertia.Tests.Properties;
@@ -27,7 +28,7 @@ public class IProvidesInertiaPropertyTests
         // Assert
         method.Should().NotBeNull();
         method!.GetParameters().Should().HaveCount(1);
-        method.GetParameters()[0].ParameterType.Should().Be(typeof(object));
+        method.GetParameters()[0].ParameterType.Should().Be(typeof(PropertyContext));
     }
 
     [Fact]
@@ -46,7 +47,7 @@ public class IProvidesInertiaPropertyTests
     {
         // Arrange
         var implementor = new TestPropertyProvider();
-        var context = new object(); // Mock context
+        var context = new PropertyContext("test", new Dictionary<string, object?>(), new object());
 
         // Act
         var value = implementor.ToInertiaProperty(context);
@@ -60,7 +61,7 @@ public class IProvidesInertiaPropertyTests
     {
         // Arrange
         var implementor = new TestPropertyProviderWithNull();
-        var context = new object(); // Mock context
+        var context = new PropertyContext("test", new Dictionary<string, object?>(), new object());
 
         // Act
         var value = implementor.ToInertiaProperty(context);
@@ -73,7 +74,7 @@ public class IProvidesInertiaPropertyTests
     public void IProvidesInertiaProperty_Implementation_CanReturnDifferentTypes()
     {
         // Arrange
-        var context = new object(); // Mock context
+        var context = new PropertyContext("test", new Dictionary<string, object?>(), new object());
         var stringProvider = new TestPropertyProviderString();
         var numberProvider = new TestPropertyProviderNumber();
         var boolProvider = new TestPropertyProviderBool();
@@ -90,7 +91,7 @@ public class IProvidesInertiaPropertyTests
     public void IProvidesInertiaProperty_Implementation_RealWorldExample_CurrentDate()
     {
         // Arrange
-        var context = new object(); // Mock context
+        var context = new PropertyContext("test", new Dictionary<string, object?>(), new object());
         var implementor = new CurrentDateProvider();
 
         // Act
@@ -105,7 +106,7 @@ public class IProvidesInertiaPropertyTests
     public void IProvidesInertiaProperty_Implementation_RealWorldExample_AppVersion()
     {
         // Arrange
-        var context = new object(); // Mock context
+        var context = new PropertyContext("test", new Dictionary<string, object?>(), new object());
         var implementor = new AppVersionProvider("1.2.3");
 
         // Act
@@ -118,37 +119,37 @@ public class IProvidesInertiaPropertyTests
     // Test implementations
     private class TestPropertyProvider : IProvidesInertiaProperty
     {
-        public object? ToInertiaProperty(object context) => "testValue";
+        public object? ToInertiaProperty(PropertyContext context) => "testValue";
     }
 
     private class TestPropertyProviderWithNull : IProvidesInertiaProperty
     {
-        public object? ToInertiaProperty(object context) => null;
+        public object? ToInertiaProperty(PropertyContext context) => null;
     }
 
     private class TestPropertyProviderString : IProvidesInertiaProperty
     {
-        public object? ToInertiaProperty(object context) => "hello";
+        public object? ToInertiaProperty(PropertyContext context) => "hello";
     }
 
     private class TestPropertyProviderNumber : IProvidesInertiaProperty
     {
-        public object? ToInertiaProperty(object context) => 42;
+        public object? ToInertiaProperty(PropertyContext context) => 42;
     }
 
     private class TestPropertyProviderBool : IProvidesInertiaProperty
     {
-        public object? ToInertiaProperty(object context) => true;
+        public object? ToInertiaProperty(PropertyContext context) => true;
     }
 
     private class TestPropertyProviderArray : IProvidesInertiaProperty
     {
-        public object? ToInertiaProperty(object context) => new[] { 1, 2, 3 };
+        public object? ToInertiaProperty(PropertyContext context) => new[] { 1, 2, 3 };
     }
 
     private class CurrentDateProvider : IProvidesInertiaProperty
     {
-        public object? ToInertiaProperty(object context) => DateTime.Now.ToString("yyyy-MM-dd");
+        public object? ToInertiaProperty(PropertyContext context) => DateTime.Now.ToString("yyyy-MM-dd");
     }
 
     private class AppVersionProvider : IProvidesInertiaProperty
@@ -160,6 +161,6 @@ public class IProvidesInertiaPropertyTests
             _version = version;
         }
 
-        public object? ToInertiaProperty(object context) => _version;
+        public object? ToInertiaProperty(PropertyContext context) => _version;
     }
 }

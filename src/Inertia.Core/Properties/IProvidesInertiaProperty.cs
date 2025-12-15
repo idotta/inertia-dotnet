@@ -39,5 +39,5 @@ public interface IProvidesInertiaProperty
     /// </summary>
     /// <param name="context">The property context providing information about the property being resolved.</param>
     /// <returns>The property value.</returns>
-    object? ToInertiaProperty(object context);
+    object? ToInertiaProperty(PropertyContext context);
 }

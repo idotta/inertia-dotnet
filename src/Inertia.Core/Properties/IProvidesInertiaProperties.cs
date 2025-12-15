@@ -40,5 +40,5 @@ public interface IProvidesInertiaProperties
     /// </summary>
     /// <param name="context">The render context providing information about the current render operation.</param>
     /// <returns>A dictionary where keys are property names and values are the property values.</returns>
-    Dictionary<string, object?> ToInertiaProperties(object context);
+    Dictionary<string, object?> ToInertiaProperties(RenderContext context);
 }

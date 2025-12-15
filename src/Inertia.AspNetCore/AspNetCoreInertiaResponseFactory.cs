@@ -44,7 +44,7 @@ public class AspNetCoreInertiaResponseFactory : IInertia
         if (httpContext != null)
         {
             var resolvedProps = await ResolvePropertiesAsync(response.Props, httpContext.Request, component);
-            
+
             // Update the response props with resolved values
             response.Props.Clear();
             foreach (var kvp in resolvedProps)
