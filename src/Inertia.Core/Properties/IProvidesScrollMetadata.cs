@@ -4,7 +4,7 @@ namespace Inertia.Core.Properties;
 /// Interface for objects that provide pagination metadata for infinite scroll functionality.
 /// </summary>
 /// <remarks>
-/// This interface is used with <see cref="ScrollProp"/> to provide pagination information
+/// This interface is used with ScrollProp to provide pagination information
 /// for infinite scroll implementations. The metadata includes information about the current page,
 /// next page, and previous page, which helps the client determine whether to load more data
 /// and what page to request next.
