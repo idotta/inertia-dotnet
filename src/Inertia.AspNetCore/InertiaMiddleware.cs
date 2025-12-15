@@ -30,7 +30,7 @@ public class InertiaMiddleware : IMiddleware
     public async Task InvokeAsync(HttpContext context, RequestDelegate next)
     {
         var request = context.Request;
-        
+
         // Get the IInertia service from DI
         var inertia = context.RequestServices.GetRequiredService<IInertia>();
 
@@ -91,9 +91,9 @@ public class InertiaMiddleware : IMiddleware
         {
             var requestVersion = request.GetInertiaVersion();
             var currentVersion = inertia.GetVersion();
-            
-            if (!string.IsNullOrEmpty(requestVersion) && 
-                !string.IsNullOrEmpty(currentVersion) && 
+
+            if (!string.IsNullOrEmpty(requestVersion) &&
+                !string.IsNullOrEmpty(currentVersion) &&
                 requestVersion != currentVersion)
             {
                 await _handler.OnVersionChange(context);
@@ -110,10 +110,10 @@ public class InertiaMiddleware : IMiddleware
 
         // Change 302 redirects to 303 for PUT/PATCH/DELETE requests
         // This ensures the browser follows the redirect with a GET request
-        if (response.StatusCode == 302 && 
-            (request.Method == HttpMethods.Put || 
-             request.Method == HttpMethods.Patch || 
-             request.Method == HttpMethods.Delete))
+        if (response.StatusCode == 302 &&
+            (request.Method == HttpMethods.Put ||
+                request.Method == HttpMethods.Patch ||
+                request.Method == HttpMethods.Delete))
         {
             response.StatusCode = 303;
         }

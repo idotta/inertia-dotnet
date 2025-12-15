@@ -93,10 +93,10 @@ public abstract class HandleInertiaRequests
         // Redirect back to referer or root
         var referer = context.Request.Headers.Referer.ToString();
         var redirectUrl = !string.IsNullOrEmpty(referer) ? referer : "/";
-        
+
         context.Response.StatusCode = 302;
         context.Response.Headers.Location = redirectUrl;
-        
+
         return Task.CompletedTask;
     }
 
@@ -111,7 +111,7 @@ public abstract class HandleInertiaRequests
         // Force a client-side full page reload
         context.Response.StatusCode = 409;
         context.Response.Headers[Core.InertiaHeaders.Location] = context.Request.GetEncodedUrl();
-        
+
         return Task.CompletedTask;
     }
 }
