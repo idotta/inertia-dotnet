@@ -301,12 +301,25 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [ ] `UseInertia<T>(this IApplicationBuilder)` method
   - [ ] Middleware ordering helpers
 
+### View Integration (TagHelpers)
+- [ ] Create `InertiaTagHelper.cs`
+  - [ ] Target `<inertia>` or `<div inertia>`
+  - [ ] Render root div with `data-page` attribute
+  - [ ] Serialize Page object to JSON
+- [ ] Create `InertiaHeadTagHelper.cs`
+  - [ ] Target `<inertia-head>`
+  - [ ] Render title and meta tags from HeadManager
+
 ### Validation Integration
 - [ ] Create `ValidationErrorResolver.cs`
   - [ ] Parse ModelState errors
   - [ ] Support multiple errors per field
   - [ ] Support error bags
   - [ ] Integration with TempData
+- [ ] Create `InertiaValidationFilter.cs` (ActionFilter)
+  - [ ] Check `ModelState.IsValid`
+  - [ ] If invalid, transform errors to Dictionary
+  - [ ] Share errors to Inertia context
 
 ### Middleware Tests
 - [ ] `InertiaMiddlewareTests.cs` (15+ tests)
@@ -530,6 +543,7 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [ ] Key differences
   - [ ] Code examples
   - [ ] Common pitfalls
+  - [ ] Client-Side Routing strategy (Ziggy equivalent)
 
 ### API Documentation
 - [ ] Add XML documentation comments to all public APIs
