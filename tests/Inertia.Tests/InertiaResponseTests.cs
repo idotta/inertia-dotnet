@@ -58,7 +58,7 @@ public class InertiaResponseTests
     }
 
     [Fact]
-    public void With_WithObject_ShouldAddMultipleProperties()
+    public void With_WithDictionary_ShouldAddMultipleProperties()
     {
         // Arrange
         var component = "Users/Index";
@@ -66,7 +66,7 @@ public class InertiaResponseTests
         var response = new InertiaResponse(component, props);
 
         // Act
-        response.With(new { user = "John", count = 10 });
+        response.With(new Dictionary<string, object?> { ["user"] = "John", ["count"] = 10 });
 
         // Assert
         response.Props.Should().ContainKey("user");
@@ -107,7 +107,7 @@ public class InertiaResponseTests
     }
 
     [Fact]
-    public void WithViewData_WithObject_ShouldAddMultipleViewData()
+    public void WithViewData_WithDictionary_ShouldAddMultipleViewData()
     {
         // Arrange
         var component = "Users/Index";
@@ -115,7 +115,7 @@ public class InertiaResponseTests
         var response = new InertiaResponse(component, props);
 
         // Act
-        response.WithViewData(new { title = "Users", subtitle = "List" });
+        response.WithViewData(new Dictionary<string, object?> { ["title"] = "Users", ["subtitle"] = "List" });
 
         // Assert
         response.ViewData.Should().ContainKey("title");

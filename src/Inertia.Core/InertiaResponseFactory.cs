@@ -26,7 +26,7 @@ public class InertiaResponseFactory : IInertia
     }
 
     /// <inheritdoc/>
-    public async Task<InertiaResponse> RenderAsync(string component, object? props = null)
+    public async Task<InertiaResponse> RenderAsync(string component, IDictionary<string, object?>? props = null)
     {
         // Validate component exists if configured
         if (_options.EnsurePagesExist)
@@ -34,14 +34,14 @@ public class InertiaResponseFactory : IInertia
             FindComponentOrFail(component);
         }
 
-        // Convert props to dictionary
-        var propsDict = props != null ? ConvertToDictionary(props) : new Dictionary<string, object?>();
-
         // Merge with shared props
         var mergedProps = new Dictionary<string, object?>(_sharedProps);
-        foreach (var kvp in propsDict)
+        if (props != null)
         {
-            mergedProps[kvp.Key] = kvp.Value;
+            foreach (var kvp in props)
+            {
+                mergedProps[kvp.Key] = kvp.Value;
+            }
         }
 
         // Create the response
@@ -72,10 +72,9 @@ public class InertiaResponseFactory : IInertia
     }
 
     /// <inheritdoc/>
-    public void Share(object props)
+    public void Share(IDictionary<string, object?> props)
     {
-        var propsDict = ConvertToDictionary(props);
-        foreach (var kvp in propsDict)
+        foreach (var kvp in props)
         {
             _sharedProps[kvp.Key] = kvp.Value;
         }
@@ -179,27 +178,7 @@ public class InertiaResponseFactory : IInertia
         throw new ComponentNotFoundException($"Inertia page component [{component}] not found.");
     }
 
-    /// <summary>
-    /// Converts an object to a dictionary.
-    /// </summary>
-    private static Dictionary<string, object?> ConvertToDictionary(object obj)
-    {
-        if (obj is Dictionary<string, object?> dict)
-        {
-            return dict;
-        }
 
-        var result = new Dictionary<string, object?>();
-        var properties = obj.GetType().GetProperties();
-        
-        foreach (var property in properties)
-        {
-            var value = property.GetValue(obj);
-            result[property.Name] = value;
-        }
-
-        return result;
-    }
 }
 
 /// <summary>

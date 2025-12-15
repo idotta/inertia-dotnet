@@ -33,7 +33,11 @@ public class InertiaResponseFactoryTests
     {
         // Arrange
         var component = "Users/Index";
-        var props = new { users = new[] { "user1", "user2" }, count = 2 };
+        var props = new Dictionary<string, object?> 
+        { 
+            ["users"] = new[] { "user1", "user2" }, 
+            ["count"] = 2 
+        };
 
         // Act
         var response = await _factory.RenderAsync(component, props);
@@ -53,7 +57,7 @@ public class InertiaResponseFactoryTests
         _factory.Share("flash", "Message");
 
         // Act
-        var response = await _factory.RenderAsync(component, new { data = "value" });
+        var response = await _factory.RenderAsync(component, new Dictionary<string, object?> { ["data"] = "value" });
 
         // Assert
         response.Props.Should().ContainKey("auth");
@@ -69,7 +73,7 @@ public class InertiaResponseFactoryTests
         _factory.Share("key", "shared");
 
         // Act
-        var response = await _factory.RenderAsync(component, new { key = "override" });
+        var response = await _factory.RenderAsync(component, new Dictionary<string, object?> { ["key"] = "override" });
 
         // Assert
         response.Props["key"].Should().Be("override");
@@ -86,10 +90,10 @@ public class InertiaResponseFactoryTests
     }
 
     [Fact]
-    public void Share_WithObject_ShouldAddMultipleSharedProps()
+    public void Share_WithDictionary_ShouldAddMultipleSharedProps()
     {
         // Arrange & Act
-        _factory.Share(new { prop1 = "value1", prop2 = "value2" });
+        _factory.Share(new Dictionary<string, object?> { ["prop1"] = "value1", ["prop2"] = "value2" });
 
         // Assert
         _factory.GetShared("prop1").Should().Be("value1");

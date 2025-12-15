@@ -105,12 +105,11 @@ public class InertiaResponse
     /// <summary>
     /// Adds multiple properties to the response.
     /// </summary>
-    /// <param name="props">An object containing properties to add.</param>
+    /// <param name="props">A dictionary containing properties to add.</param>
     /// <returns>This instance for method chaining.</returns>
-    public InertiaResponse With(object props)
+    public InertiaResponse With(IDictionary<string, object?> props)
     {
-        var propsDict = ConvertToDictionary(props);
-        foreach (var kvp in propsDict)
+        foreach (var kvp in props)
         {
             Props[kvp.Key] = kvp.Value;
         }
@@ -132,12 +131,11 @@ public class InertiaResponse
     /// <summary>
     /// Adds multiple view data items.
     /// </summary>
-    /// <param name="viewData">An object containing view data to add.</param>
+    /// <param name="viewData">A dictionary containing view data to add.</param>
     /// <returns>This instance for method chaining.</returns>
-    public InertiaResponse WithViewData(object viewData)
+    public InertiaResponse WithViewData(IDictionary<string, object?> viewData)
     {
-        var dataDict = ConvertToDictionary(viewData);
-        foreach (var kvp in dataDict)
+        foreach (var kvp in viewData)
         {
             ViewData[kvp.Key] = kvp.Value;
         }
@@ -188,25 +186,5 @@ public class InertiaResponse
         return await Task.FromResult(page);
     }
 
-    /// <summary>
-    /// Converts an anonymous object to a dictionary.
-    /// </summary>
-    private static Dictionary<string, object?> ConvertToDictionary(object obj)
-    {
-        if (obj is Dictionary<string, object?> dict)
-        {
-            return dict;
-        }
 
-        var result = new Dictionary<string, object?>();
-        var properties = obj.GetType().GetProperties();
-        
-        foreach (var property in properties)
-        {
-            var value = property.GetValue(obj);
-            result[property.Name] = value;
-        }
-
-        return result;
-    }
 }

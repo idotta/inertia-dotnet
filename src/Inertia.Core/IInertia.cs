@@ -12,7 +12,7 @@ public interface IInertia
     /// <param name="component">The name of the frontend component to render.</param>
     /// <param name="props">The properties/data to pass to the component.</param>
     /// <returns>An InertiaResponse that can be returned from a controller action.</returns>
-    Task<InertiaResponse> RenderAsync(string component, object? props = null);
+    Task<InertiaResponse> RenderAsync(string component, IDictionary<string, object?>? props = null);
 
     /// <summary>
     /// Creates an Inertia location response that forces a client-side redirect.
@@ -34,8 +34,8 @@ public interface IInertia
     /// <summary>
     /// Shares multiple properties at once by merging them with existing shared props.
     /// </summary>
-    /// <param name="props">An object containing properties to share.</param>
-    void Share(object props);
+    /// <param name="props">A dictionary containing properties to share.</param>
+    void Share(IDictionary<string, object?> props);
 
     /// <summary>
     /// Gets the value of a shared property.
