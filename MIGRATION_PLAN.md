@@ -201,18 +201,18 @@ The inertia-laravel adapter provides server-side functionality for building mode
 **Goal:** Set up project structure and implement basic response rendering
 
 #### 1.1 Project Setup
-- [ ] Create .NET solution structure
+- [x] Create .NET solution structure
   - Core library project (`Inertia.Core`)
   - ASP.NET Core integration (`Inertia.AspNetCore`)
   - Testing library (`Inertia.Testing`)
   - Test project (`Inertia.Tests`)
   
-- [ ] Set up NuGet package metadata
+- [x] Set up NuGet package metadata
   - Package ID: `Inertia.AspNetCore`
   - Target frameworks: .NET 6.0+, .NET 8.0+
   - Dependencies: ASP.NET Core
 
-- [ ] Configure CI/CD (GitHub Actions)
+- [x] Configure CI/CD (GitHub Actions)
   - Build workflow
   - Test workflow
   - Linting/static analysis

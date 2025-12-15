@@ -14,32 +14,31 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 ## Project Setup
 
 ### Repository Structure
-- [ ] Create .NET solution file (`inertia-dotnet.sln`)
-- [ ] Create `src/` directory
-- [ ] Create `tests/` directory
+- [x] Create .NET solution file (`inertia-dotnet.sln`)
+- [x] Create `src/` directory
+- [x] Create `tests/` directory
 - [ ] Create `samples/` directory
-- [ ] Create `docs/` directory
-- [ ] Update `.gitignore` for .NET projects
+- [x] Create `docs/` directory
+- [x] Update `.gitignore` for .NET projects
 
 ### Core Projects
-- [ ] Create `Inertia.Core` class library project (.NET 8.0+)
-- [ ] Create `Inertia.AspNetCore` class library project
-- [ ] Create `Inertia.Testing` class library project
-- [ ] Create `Inertia.Tests` test project (xUnit)
-- [ ] Create `Inertia.AspNetCore.Tests` test project
-- [ ] Create `Inertia.Testing.Tests` test project
+- [x] Create `Inertia.Core` class library project (.NET 8.0+)
+- [x] Create `Inertia.AspNetCore` class library project
+- [x] Create `Inertia.Testing` class library project
+- [x] Create `Inertia.Tests` test project (xUnit)
+- [x] Create `Inertia.AspNetCore.Tests` test project
+- [x] Create `Inertia.Testing.Tests` test project
 
 ### Package Configuration
-- [ ] Configure NuGet metadata for Inertia.Core
-- [ ] Configure NuGet metadata for Inertia.AspNetCore
-- [ ] Configure NuGet metadata for Inertia.Testing
-- [ ] Add package icons
-- [ ] Add LICENSE file (MIT)
+- [x] Configure NuGet metadata for Inertia.Core
+- [x] Configure NuGet metadata for Inertia.AspNetCore
+- [x] Configure NuGet metadata for Inertia.Testing
+- [x] Add LICENSE file (MIT)
 - [ ] Add README.md for NuGet
 
 ### CI/CD
-- [ ] Create `.github/workflows/build.yml`
-- [ ] Create `.github/workflows/test.yml`
+- [x] Create `.github/workflows/build.yml`
+- [x] Create `.github/workflows/test.yml`
 - [ ] Create `.github/workflows/lint.yml`
 - [ ] Create `.github/workflows/publish.yml`
 - [ ] Configure automated version bumping
