@@ -269,30 +269,47 @@ The inertia-laravel adapter provides server-side functionality for building mode
 
 **Goal:** Implement ASP.NET Core middleware for Inertia
 
-#### 3.1 Core Middleware
-- [ ] `InertiaMiddleware` - Main request handling
+#### 3.1 Core Middleware ✅ (Completed 2025-12-15)
+- [x] `InertiaMiddleware` - Main request handling
   - Detect Inertia requests (X-Inertia header)
   - Version checking
   - Shared props injection
   - Redirect handling (303 for PUT/PATCH/DELETE)
   - Empty response handling
   
-- [ ] `HandleInertiaRequests` base class
+- [x] `HandleInertiaRequests` base class
   - `Version()` method
   - `Share()` method for shared props
   - `ShareOnce()` method
   - `RootView()` method
   - `UrlResolver()` method
   - `ResolveValidationErrors()` method
+  - `OnEmptyResponse()` method
+  - `OnVersionChange()` method
+
+- [x] Service registration extensions
+  - `AddInertia()` methods
+  - `UseInertia()` middleware registration
+
+- [x] Request/Response Extensions
+  - `HttpRequest.IsInertia()` extension
+  - `GetInertiaVersion()`, `GetPartialComponent()`, etc.
+  - Vary header support
+  
+- [x] `InertiaResult` - IActionResult implementation
+  - JSON response for Inertia requests
+  - Extension method for response conversion
+
+- [x] Comprehensive test coverage (61 tests)
+  - `HttpRequestExtensionsTests` (17 tests)
+  - `HandleInertiaRequestsTests` (20 tests)
+  - `InertiaMiddlewareTests` (17 tests)
+  - `ServiceRegistrationTests` (10 tests)
 
 #### 3.2 Additional Middleware
 - [ ] `EncryptHistoryMiddleware` - History encryption
-- [ ] Middleware registration extensions
-
-#### 3.3 Request/Response Extensions
-- [ ] `HttpRequest.IsInertia()` extension
-- [ ] Header constants class
-- [ ] Vary header support
+- [ ] Property resolution integration (partial reloads, deferred props)
+- [ ] Validation error middleware/filter integration
 
 ### Phase 4: Server-Side Rendering (Week 5)
 

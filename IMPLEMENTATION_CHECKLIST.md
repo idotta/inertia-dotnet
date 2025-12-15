@@ -260,38 +260,42 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 
 ## Phase 3: ASP.NET Core Integration
 
-### Service Registration
-- [ ] Create `InertiaServiceCollectionExtensions.cs`
-  - [ ] `AddInertia(this IServiceCollection services)` method
-  - [ ] `AddInertia(this IServiceCollection services, Action<InertiaOptions> configure)` overload
-  - [ ] Register IInertia as scoped
-  - [ ] Register ResponseFactory as scoped
-  - [ ] Configure IOptions<InertiaOptions>
-  - [ ] Register SSR gateway
-  - [ ] Register middleware
+### Service Registration ✅ (Completed 2025-12-15)
+- [x] Create `InertiaServiceCollectionExtensions.cs`
+  - [x] `AddInertia(this IServiceCollection services)` method
+  - [x] `AddInertia(this IServiceCollection services, Action<InertiaOptions> configure)` overload
+  - [x] `AddInertia<THandler>()` method for custom handlers
+  - [x] Register IInertia as scoped
+  - [x] Register ResponseFactory as scoped
+  - [x] Configure IOptions<InertiaOptions>
+  - [x] Register middleware
 
 ### Middleware
 
-#### Core Middleware
-- [ ] Create `InertiaMiddleware.cs`
-  - [ ] Implement IMiddleware
-  - [ ] `InvokeAsync(HttpContext, RequestDelegate)` method
-  - [ ] Detect Inertia requests (X-Inertia header)
-  - [ ] Version checking logic
-  - [ ] Add Vary header
-  - [ ] Handle 303 redirects for PUT/PATCH/DELETE
-  - [ ] Handle empty responses
-  - [ ] Handle version mismatches
+#### Core Middleware ✅ (Completed 2025-12-15)
+- [x] Create `InertiaMiddleware.cs`
+  - [x] Implement IMiddleware
+  - [x] `InvokeAsync(HttpContext, RequestDelegate)` method
+  - [x] Detect Inertia requests (X-Inertia header)
+  - [x] Version checking logic
+  - [x] Add Vary header
+  - [x] Handle 303 redirects for PUT/PATCH/DELETE
+  - [x] Handle empty responses
+  - [x] Handle version mismatches
 
-- [ ] Create `HandleInertiaRequests.cs` abstract base class
-  - [ ] `Version(HttpRequest)` virtual method
-  - [ ] `Share(HttpRequest)` virtual method
-  - [ ] `ShareOnce(HttpRequest)` virtual method
-  - [ ] `RootView(HttpRequest)` virtual method
-  - [ ] `UrlResolver()` virtual method
-  - [ ] `ResolveValidationErrors(HttpContext)` virtual method
-  - [ ] `OnEmptyResponse(HttpContext)` virtual method
-  - [ ] `OnVersionChange(HttpContext)` virtual method
+- [x] Create `HandleInertiaRequests.cs` abstract base class
+  - [x] `Version(HttpRequest)` virtual method
+  - [x] `Share(HttpRequest)` virtual method
+  - [x] `ShareOnce(HttpRequest)` virtual method
+  - [x] `RootView(HttpRequest)` virtual method
+  - [x] `UrlResolver()` virtual method
+  - [x] `ResolveValidationErrors(HttpContext)` virtual method
+  - [x] `OnEmptyResponse(HttpContext)` virtual method
+  - [x] `OnVersionChange(HttpContext)` virtual method
+
+- [x] Create `InertiaResult.cs` - IActionResult implementation
+  - [x] ExecuteResultAsync for JSON responses
+  - [x] Extension method ToActionResult()
 
 #### History Encryption Middleware
 - [ ] Create `EncryptHistoryMiddleware.cs`
@@ -299,17 +303,19 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [ ] Encryption/decryption logic
   - [ ] Session integration
 
-### Extensions
-- [ ] Create `HttpRequestExtensions.cs`
-  - [ ] `IsInertia(this HttpRequest)` method
-  - [ ] `GetInertiaVersion(this HttpRequest)` method
-  - [ ] `GetPartialProps(this HttpRequest)` method
-  - [ ] `GetPartialExcept(this HttpRequest)` method
-  - [ ] `GetPartialComponent(this HttpRequest)` method
+### Extensions ✅ (Completed 2025-12-15)
+- [x] Create `HttpRequestExtensions.cs`
+  - [x] `IsInertia(this HttpRequest)` method
+  - [x] `GetInertiaVersion(this HttpRequest)` method
+  - [x] `GetPartialData(this HttpRequest)` method
+  - [x] `GetPartialExcept(this HttpRequest)` method
+  - [x] `GetPartialComponent(this HttpRequest)` method
+  - [x] `GetErrorBag(this HttpRequest)` method
+  - [x] `GetReset(this HttpRequest)` method
   
-- [ ] Create `InertiaApplicationBuilderExtensions.cs`
-  - [ ] `UseInertia<T>(this IApplicationBuilder)` method
-  - [ ] Middleware ordering helpers
+- [x] Create `InertiaApplicationBuilderExtensions.cs`
+  - [x] `UseInertia<T>(this IApplicationBuilder)` method
+  - [x] `UseInertia(this IApplicationBuilder)` method
 
 ### View Integration (TagHelpers)
 - [ ] Create `InertiaTagHelper.cs`
@@ -331,9 +337,11 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [ ] If invalid, transform errors to Dictionary
   - [ ] Share errors to Inertia context
 
-### Middleware Tests
-- [ ] `InertiaMiddlewareTests.cs` (15+ tests)
-- [ ] `HandleInertiaRequestsTests.cs` (10+ tests)
+### Middleware Tests ✅ (Completed 2025-12-15)
+- [x] `InertiaMiddlewareTests.cs` (17 tests) ✅
+- [x] `HandleInertiaRequestsTests.cs` (20 tests) ✅
+- [x] `HttpRequestExtensionsTests.cs` (17 tests) ✅
+- [x] `ServiceRegistrationTests.cs` (10 tests) ✅
 - [ ] `EncryptHistoryMiddlewareTests.cs` (5+ tests)
 - [ ] `ValidationIntegrationTests.cs` (8+ tests)
 
@@ -692,9 +700,9 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 
 | Phase | Features | Status | Completion |
 |-------|----------|--------|------------|
-| Phase 1: Core | 33 | [🚧] | ~90% (Core complete, awaiting ASP.NET integration) |
-| Phase 2: Properties | 41 | [✅] | 100% (Property implementations complete, resolution logic deferred to Phase 3) |
-| Phase 3: Middleware | 18 | [ ] | 0% |
+| Phase 1: Core | 33 | [✅] | 100% (Core infrastructure complete) |
+| Phase 2: Properties | 41 | [✅] | 100% (All property types implemented) |
+| Phase 3: Middleware | 50+ | [🚧] | ~60% (Core middleware complete, additional features pending) |
 | Phase 4: SSR | 18 | [ ] | 0% |
 | Phase 5: Testing | 26 | [ ] | 0% |
 | Phase 6: CLI | 8 | [ ] | 0% |
@@ -704,8 +712,8 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 | Phase 10: Maintenance | Ongoing | [ ] | 0% |
 
 **Total Tasks:** 400+  
-**Completed:** ~130 (Phase 1 & 2 complete)  
-**Overall Progress:** ~33%
+**Completed:** ~160 (Phase 1, 2, and 3.1 complete)  
+**Overall Progress:** ~40%
 
 ---
 
@@ -718,7 +726,9 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 4. [x] Implement InertiaResponse class
 5. [x] Write first unit tests (55 tests passing)
 
-### Completed in Phase 1
+### Completed Phases
+
+#### Phase 1: Core Infrastructure ✅
 - [x] Project structure and solution setup
 - [x] InertiaHeaders constants
 - [x] InertiaOptions configuration (including SSR, Testing, History nested options)
@@ -727,19 +737,29 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [x] InertiaResponseFactory implementation
 - [x] Comprehensive test coverage (55+ tests)
 - [x] CI/CD workflows (build, test, lint, publish)
-- [x] Automated version bumping and changelog generation
-- [x] NuGet package configuration
-- [x] Samples directory structure
-- [x] NuGet README
+
+#### Phase 2: Property Types ✅
+- [x] All property type implementations (OptionalProp, DeferProp, AlwaysProp, MergeProp, ScrollProp, OnceProp)
+- [x] Property interfaces (IIgnoreFirstLoad, IMergeable, IOnceable, etc.)
+- [x] ScrollMetadata helper class
+- [x] Comprehensive test coverage (158 tests)
+
+#### Phase 3.1: Core Middleware ✅
+- [x] InertiaMiddleware with full request/response handling
+- [x] HandleInertiaRequests base class
+- [x] Service registration extensions (AddInertia, UseInertia)
+- [x] HttpRequest extensions (IsInertia, GetPartialData, etc.)
+- [x] InertiaResult IActionResult implementation
+- [x] Comprehensive test coverage (64 tests)
 
 ### Next Steps
-1. [ ] Implement Property Types (Phase 2)
-   - [ ] OptionalProp, DeferProp, AlwaysProp
-   - [ ] MergeProp, ScrollProp, OnceProp
-2. [ ] Implement ASP.NET Core Integration (Phase 3)
-   - [ ] Service registration extensions
-   - [ ] Middleware implementation
-3. [ ] Implement SSR support (Phase 4)
+1. [ ] Complete Phase 3.2: Additional Middleware Features
+   - [ ] EncryptHistoryMiddleware
+   - [ ] Property resolution integration (partial reloads)
+   - [ ] Validation error handling
+   - [ ] TagHelpers for view rendering
+2. [ ] Implement SSR support (Phase 4)
+3. [ ] Implement Testing infrastructure (Phase 5)
 
 ### This Quarter
 1. [ ] Complete Phases 1-5
