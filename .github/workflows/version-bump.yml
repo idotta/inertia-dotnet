@@ -1,0 +1,121 @@
+name: Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Version bump type'
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      create_release:
+        description: 'Create GitHub release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Setup Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+    
+    - name: Get current version
+      id: current_version
+      run: |
+        # Try to get version from latest tag
+        CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+        CURRENT_VERSION="${CURRENT_VERSION#v}"
+        echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+        echo "Current version: $CURRENT_VERSION"
+    
+    - name: Calculate new version
+      id: new_version
+      run: |
+        CURRENT="${{ steps.current_version.outputs.CURRENT_VERSION }}"
+        IFS='.' read -r -a VERSION_PARTS <<< "$CURRENT"
+        MAJOR="${VERSION_PARTS[0]}"
+        MINOR="${VERSION_PARTS[1]}"
+        PATCH="${VERSION_PARTS[2]}"
+        
+        case "${{ github.event.inputs.bump_type }}" in
+          major)
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            ;;
+          minor)
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            ;;
+          patch)
+            PATCH=$((PATCH + 1))
+            ;;
+        esac
+        
+        NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+        echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+        echo "New version: $NEW_VERSION"
+    
+    - name: Update CHANGELOG
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.NEW_VERSION }}"
+        DATE=$(date +%Y-%m-%d)
+        
+        # Create CHANGELOG if it doesn't exist
+        if [ ! -f CHANGELOG.md ]; then
+          cat > CHANGELOG.md << EOF
+        # Changelog
+        
+        All notable changes to this project will be documented in this file.
+        
+        The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+        and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+        
+        EOF
+        fi
+        
+        # Add new version entry
+        sed -i "3i\\
+        ## [${NEW_VERSION}] - ${DATE}\\
+        \\
+        ### Added\\
+        - Version bump to ${NEW_VERSION}\\
+        \\
+        " CHANGELOG.md
+        
+        git add CHANGELOG.md
+    
+    - name: Create version tag
+      run: |
+        NEW_VERSION="${{ steps.new_version.outputs.NEW_VERSION }}"
+        git commit -m "chore: bump version to v${NEW_VERSION}" || echo "No changes to commit"
+        git tag -a "v${NEW_VERSION}" -m "Release v${NEW_VERSION}"
+        git push origin HEAD --tags
+    
+    - name: Create GitHub Release
+      if: ${{ github.event.inputs.create_release == 'true' }}
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.new_version.outputs.NEW_VERSION }}
+        release_name: v${{ steps.new_version.outputs.NEW_VERSION }}
+        body: |
+          Release v${{ steps.new_version.outputs.NEW_VERSION }}
+          
+          See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md) for details.
+        draft: false
+        prerelease: false
