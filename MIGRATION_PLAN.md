@@ -219,18 +219,18 @@ The inertia-laravel adapter provides server-side functionality for building mode
   - Package publishing
 
 #### 1.2 Core Classes
-- [ ] `IInertia` interface (equivalent to ResponseFactory)
-- [ ] `InertiaResponse` class (equivalent to Response)
-- [ ] `InertiaResponseFactory` implementation
-- [ ] `InertiaOptions` configuration class
-- [ ] Service registration extensions (`AddInertia()`)
+- [x] `IInertia` interface (equivalent to ResponseFactory)
+- [x] `InertiaResponse` class (equivalent to Response)
+- [x] `InertiaResponseFactory` implementation
+- [x] `InertiaOptions` configuration class
+- [ ] Service registration extensions (`AddInertia()`) - deferred to Phase 3
 
 #### 1.3 Basic Features
-- [ ] Render responses with component + props
-- [ ] Shared props management
-- [ ] Asset versioning
-- [ ] Root view configuration
-- [ ] JSON serialization with proper settings
+- [x] Render responses with component + props
+- [x] Shared props management
+- [x] Asset versioning
+- [x] Root view configuration
+- [x] JSON serialization with proper settings
 
 ### Phase 2: Property Types (Week 3)
 
