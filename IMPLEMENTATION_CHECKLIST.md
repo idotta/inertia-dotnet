@@ -151,11 +151,12 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [x] `bool OnlyOnPartial()` method
 - [x] Create `IOnceable.cs` interface
   - [x] `bool IsOnce()` method
-- [x] Create `IProvidesInertiaProperties.cs` interface
-  - [x] `Dictionary<string, object> ToInertiaProperties()` method
-- [x] Create `IProvidesInertiaProperty.cs` interface
-  - [x] `string GetKey()` method
-  - [x] `object GetValue()` method
+- [x] Create `IProvidesInertiaProperties.cs` interface ✅ (Updated 2025-12-15)
+  - [x] `Dictionary<string, object> ToInertiaProperties(object context)` method
+  - [x] Accepts RenderContext parameter (matches Laravel design)
+- [x] Create `IProvidesInertiaProperty.cs` interface ✅ (Updated 2025-12-15)
+  - [x] `object? ToInertiaProperty(object context)` method
+  - [x] Accepts PropertyContext parameter (matches Laravel design)
 - [x] Create `IProvidesScrollMetadata.cs` interface
   - [x] `string GetPageName()` method
   - [x] `object? GetPreviousPage()` method
@@ -226,7 +227,7 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - Note: LazyProp was deprecated in inertia-laravel v2.x in favor of OptionalProp
   - This adapter does not include the deprecated LazyProp class
 
-### Property Resolution System (Partial)
+### Property Resolution System ✅ (Completed 2025-12-15)
 - [x] Create `PropertyContext.cs` class ✅ (Completed 2025-12-15)
   - [x] Property key tracking
   - [x] Props dictionary access
@@ -236,13 +237,17 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [x] Component tracking
   - [x] HTTP request access for context
   
-- [ ] Property resolution logic in ResponseFactory (Deferred to Future PR)
-  - [ ] Handle partial reloads (filter props based on X-Inertia-Partial-Data header)
-  - [ ] Filter properties based on headers
-  - [ ] Resolve callable properties (Func<T> and Func<Task<T>>)
-  - [ ] Handle merge properties
-  - [ ] Handle deferred properties
-  - [ ] Handle once properties with session caching
+- [x] Property resolution logic in ResponseFactory ✅ (Completed 2025-12-15)
+  - [x] Create AspNetCoreInertiaResponseFactory with HTTP context awareness
+  - [x] Handle partial reloads (filter props based on X-Inertia-Partial-Data/Except headers)
+  - [x] Filter properties on initial load (IIgnoreFirstLoad)
+  - [x] Resolve callable properties (Func<T> and Func<Task<T>>)
+  - [x] Resolve property types (OptionalProp, DeferProp, AlwaysProp, MergeProp, ScrollProp, OnceProp)
+  - [x] Resolve property providers (IProvidesInertiaProperty, IProvidesInertiaProperties)
+  - [x] Recursively resolve nested dictionaries
+  - [x] Update interfaces to accept context parameters (matching Laravel)
+  - [ ] Handle once properties with session caching (requires session integration - deferred)
+  - [ ] Add merge/defer/scroll metadata to response headers (deferred)
 
 ### Property Tests
 - [x] `OptionalPropTests.cs` (10+ tests) - ✅ 11 tests
@@ -699,7 +704,7 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 |-------|----------|--------|------------|
 | Phase 1: Core | 33 | [✅] | 100% (Core infrastructure complete) |
 | Phase 2: Properties | 41 | [✅] | 100% (All property types implemented) |
-| Phase 3: Middleware | 50+ | [✅] | 95% (Core middleware and additional middleware complete) |
+| Phase 3: Middleware | 50+ | [✅] | 98% (Core, additional middleware, and property resolution complete) |
 | Phase 4: SSR | 18 | [ ] | 0% |
 | Phase 5: Testing | 26 | [ ] | 0% |
 | Phase 6: CLI | 8 | [ ] | 0% |
@@ -709,8 +714,8 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 | Phase 10: Maintenance | Ongoing | [ ] | 0% |
 
 **Total Tasks:** 400+  
-**Completed:** ~175 (Phases 1, 2, 3.1, and 3.2 complete)  
-**Overall Progress:** ~44%
+**Completed:** ~185 (Phases 1, 2, and most of Phase 3 complete)  
+**Overall Progress:** ~46%
 
 ---
 
@@ -756,11 +761,22 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [x] Service registration and application builder extensions
 - [x] Comprehensive test coverage (24 new tests, 88 total for AspNetCore)
 
+#### Phase 3.3: Property Resolution Integration ✅ (Completed 2025-12-15)
+- [x] AspNetCoreInertiaResponseFactory with HTTP context awareness
+- [x] Property resolution pipeline implementation
+- [x] Partial reload filtering (X-Inertia-Partial-Data/Except headers)
+- [x] IIgnoreFirstLoad filtering on initial loads
+- [x] Property type resolution (OptionalProp, DeferProp, AlwaysProp, etc.)
+- [x] Callback resolution (Func<T>, Func<Task<T>>)
+- [x] Property provider resolution (IProvidesInertiaProperty, IProvidesInertiaProperties)
+- [x] Interface updates to accept context parameters (matches Laravel)
+- [x] Service registration updates
+- [x] Comprehensive test coverage (293 tests passing)
+
 ### Next Steps
-1. [ ] Complete Phase 3.3: Property Resolution Integration (Future PR)
-   - [ ] Integrate PropertyContext and RenderContext into ResponseFactory
-   - [ ] Property resolution logic (partial reloads, deferred props, once props)
-   - [ ] Property provider support
+1. [ ] Complete remaining Phase 3 items
+   - [ ] Once props session caching (requires session integration)
+   - [ ] Merge/defer/scroll metadata in response headers
    - [ ] TagHelpers for view rendering
 2. [ ] Implement SSR support (Phase 4)
 3. [ ] Implement Testing infrastructure (Phase 5)

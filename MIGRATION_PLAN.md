@@ -258,12 +258,14 @@ The inertia-laravel adapter provides server-side functionality for building mode
 - [x] `OnceProp` - Cache across navigations
 - [x] ~~`LazyProp`~~ - Not implemented (deprecated in Laravel, use OptionalProp instead)
 
-#### 2.3 Property Resolution
-- [ ] Property context tracking (deferred to Phase 3)
-- [ ] Render context management (deferred to Phase 3)
-- [ ] Callback resolution with DI support (deferred to Phase 3)
-- [ ] Merge strategy implementation (deferred to Phase 3)
-- [ ] Once resolution caching (deferred to Phase 3)
+#### 2.3 Property Resolution ✅ (Completed 2025-12-15)
+- [x] Property context tracking (PropertyContext class)
+- [x] Render context management (RenderContext class)
+- [x] Callback resolution with async support (Func<T>, Func<Task<T>>)
+- [x] Property type resolution (OptionalProp, DeferProp, etc.)
+- [x] Property provider resolution (IProvidesInertiaProperty, IProvidesInertiaProperties)
+- [ ] Merge strategy metadata (deferred - requires response header modifications)
+- [ ] Once resolution caching (deferred - requires session integration)
 
 ### Phase 3: Middleware (Week 4)
 
@@ -324,8 +326,34 @@ The inertia-laravel adapter provides server-side functionality for building mode
 - [x] Context classes for property resolution
   - PropertyContext for property-level context
   - RenderContext for render-level context
+
+#### 3.3 Property Resolution Integration ✅ (Completed 2025-12-15)
+- [x] `AspNetCoreInertiaResponseFactory` - HTTP-aware property resolution
+  - Wraps core InertiaResponseFactory
+  - Provides HTTP context awareness for request-based property resolution
+  - Comprehensive test coverage (293 tests passing)
   
-- [ ] Property resolution integration (partial reloads, deferred props) - Deferred to future PR
+- [x] Property resolution pipeline
+  - [x] IProvidesInertiaProperties resolution (multiple props from single object)
+  - [x] Partial reload filtering (X-Inertia-Partial-Data/Except headers)
+  - [x] IIgnoreFirstLoad filtering on initial loads
+  - [x] Property type resolution (OptionalProp, DeferProp, AlwaysProp, MergeProp, ScrollProp, OnceProp)
+  - [x] IProvidesInertiaProperty resolution (single prop with context)
+  - [x] Callback resolution (Func<T>, Func<Task<T>>)
+  - [x] Recursive nested dictionary resolution
+  
+- [x] Interface updates
+  - [x] IProvidesInertiaProperty.ToInertiaProperty(object context)
+  - [x] IProvidesInertiaProperties.ToInertiaProperties(object context)
+  - [x] Matches Laravel's context-aware design
+  
+- [x] Service registration
+  - [x] Register AspNetCoreInertiaResponseFactory as IInertia
+  - [x] Register IHttpContextAccessor for context access
+  
+- [ ] Remaining items (deferred)
+  - [ ] Once props session caching
+  - [ ] Merge/defer/scroll metadata in response headers
 
 ### Phase 4: Server-Side Rendering (Week 5)
 
