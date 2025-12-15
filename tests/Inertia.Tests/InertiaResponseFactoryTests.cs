@@ -33,10 +33,10 @@ public class InertiaResponseFactoryTests
     {
         // Arrange
         var component = "Users/Index";
-        var props = new Dictionary<string, object?> 
-        { 
-            ["users"] = new[] { "user1", "user2" }, 
-            ["count"] = 2 
+        var props = new Dictionary<string, object?>
+        {
+            ["users"] = new[] { "user1", "user2" },
+            ["count"] = 2
         };
 
         // Act

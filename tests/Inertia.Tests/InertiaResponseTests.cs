@@ -138,10 +138,10 @@ public class InertiaResponseTests
 
         // Assert
         json.Should().NotBeNullOrEmpty();
-        
+
         var document = JsonDocument.Parse(json);
         var root = document.RootElement;
-        
+
         root.GetProperty("component").GetString().Should().Be("Users/Index");
         root.GetProperty("version").GetString().Should().Be("1.0.0");
         root.GetProperty("url").GetString().Should().Be("/users");

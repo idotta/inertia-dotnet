@@ -84,7 +84,7 @@ public class InertiaResponse
         Version = version;
         EncryptHistory = encryptHistory;
         UrlResolver = urlResolver;
-        
+
         // ClearHistory is typically retrieved from session in Laravel
         // For now, we'll set it to false and handle session integration later
         ClearHistory = false;
