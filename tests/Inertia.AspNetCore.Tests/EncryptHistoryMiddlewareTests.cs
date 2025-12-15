@@ -9,8 +9,8 @@ public class EncryptHistoryMiddlewareTests
     private class TestInertia : Core.IInertia
     {
         public int EncryptHistoryCalls { get; private set; }
-        
-        public Task<Core.InertiaResponse> RenderAsync(string component, IDictionary<string, object?>? props = null) => 
+
+        public Task<Core.InertiaResponse> RenderAsync(string component, IDictionary<string, object?>? props = null) =>
             throw new NotImplementedException();
         public object Location(string url) => throw new NotImplementedException();
         public void Share(string key, object? value) => throw new NotImplementedException();
@@ -109,7 +109,7 @@ public class EncryptHistoryMiddlewareTests
         // Act & Assert
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => middleware.InvokeAsync(context, Next));
-        
+
         Assert.Same(expectedException, exception);
         Assert.Equal(1, testInertia.EncryptHistoryCalls);
     }
@@ -122,7 +122,7 @@ public class EncryptHistoryMiddlewareTests
         var middleware = new EncryptHistoryMiddleware(testInertia);
         var context = new DefaultHttpContext();
         context.Items["TestKey"] = "TestValue";
-        
+
         Task Next(HttpContext ctx)
         {
             Assert.Equal("TestValue", ctx.Items["TestKey"]);
@@ -167,7 +167,7 @@ public class EncryptHistoryMiddlewareTests
         var testInertia = new TestInertia();
         var middleware = new EncryptHistoryMiddleware(testInertia);
         var context = new DefaultHttpContext();
-        
+
         Task Next(HttpContext ctx)
         {
             ctx.Response.StatusCode = 200;

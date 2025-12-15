@@ -36,10 +36,10 @@ public class InertiaValidationFilter : IActionFilter
 
         // Get error bag from header if specified
         var errorBag = context.HttpContext.Request.Headers[Core.InertiaHeaders.ErrorBag].ToString();
-        
+
         // Convert ModelState errors to dictionary format
         var errors = ConvertModelStateErrors(context.ModelState, string.IsNullOrEmpty(errorBag) ? null : errorBag);
-        
+
         // Store errors in HttpContext.Items for access by HandleInertiaRequests
         context.HttpContext.Items["InertiaValidationErrors"] = errors;
     }
@@ -63,8 +63,8 @@ public class InertiaValidationFilter : IActionFilter
             {
                 // Get all error messages for this field
                 var fieldErrors = state.Errors
-                    .Select(e => !string.IsNullOrEmpty(e.ErrorMessage) 
-                        ? e.ErrorMessage 
+                    .Select(e => !string.IsNullOrEmpty(e.ErrorMessage)
+                        ? e.ErrorMessage
                         : e.Exception?.Message ?? "Validation error")
                     .ToArray();
 

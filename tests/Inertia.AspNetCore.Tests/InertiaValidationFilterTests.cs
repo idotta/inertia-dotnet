@@ -172,7 +172,7 @@ public class InertiaValidationFilterTests
         var filter = new InertiaValidationFilter();
         var modelState = new ModelStateDictionary();
         var context = CreateContext(modelState);
-        
+
         // Manually create a model state entry with no error message
         context.ModelState.AddModelError("Field", "");
 

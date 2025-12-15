@@ -71,13 +71,13 @@ public static class InertiaServiceCollectionExtensions
 
         // Register the middleware itself
         services.TryAddScoped<InertiaMiddleware>();
-        
+
         // Register optional middleware
         services.TryAddScoped<EncryptHistoryMiddleware>();
 
         return services;
     }
-    
+
     /// <summary>
     /// Adds Inertia validation filter to MVC options.
     /// This enables automatic validation error handling for Inertia requests.
