@@ -306,10 +306,26 @@ The inertia-laravel adapter provides server-side functionality for building mode
   - `InertiaMiddlewareTests` (17 tests)
   - `ServiceRegistrationTests` (10 tests)
 
-#### 3.2 Additional Middleware
-- [ ] `EncryptHistoryMiddleware` - History encryption
-- [ ] Property resolution integration (partial reloads, deferred props)
-- [ ] Validation error middleware/filter integration
+#### 3.2 Additional Middleware ✅ (Completed 2025-12-15)
+- [x] `EncryptHistoryMiddleware` - History encryption
+  - Enables browser history state encryption for enhanced security
+  - Implemented as IMiddleware with dependency on IInertia
+  - 8 comprehensive tests covering all scenarios
+  - UseInertiaEncryptHistory() extension method for easy setup
+  
+- [x] `InertiaValidationFilter` - Validation error handling
+  - ActionFilter for automatic ModelState error handling
+  - Supports multiple errors per field
+  - Supports error bags via X-Inertia-Error-Bag header
+  - Integration with HttpContext.Items for error sharing
+  - 16 comprehensive tests covering validation scenarios
+  - AddInertiaValidation() extension method for MVC integration
+  
+- [x] Context classes for property resolution
+  - PropertyContext for property-level context
+  - RenderContext for render-level context
+  
+- [ ] Property resolution integration (partial reloads, deferred props) - Deferred to future PR
 
 ### Phase 4: Server-Side Rendering (Week 5)
 
