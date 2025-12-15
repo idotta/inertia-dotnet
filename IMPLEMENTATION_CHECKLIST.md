@@ -143,24 +143,24 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 ## Phase 2: Property Types
 
 ### Property Interfaces
-- [ ] Create `IIgnoreFirstLoad.cs` (marker interface)
-- [ ] Create `IMergeable.cs` interface
-  - [ ] `bool ShouldMerge()` method
-  - [ ] `string? GetMergePath()` method
-  - [ ] `bool IsDeepMerge()` method
-  - [ ] `bool OnlyOnPartial()` method
-- [ ] Create `IOnceable.cs` interface
-  - [ ] `bool IsOnce()` method
-- [ ] Create `IProvidesInertiaProperties.cs` interface
-  - [ ] `Dictionary<string, object> ToInertiaProperties()` method
-- [ ] Create `IProvidesInertiaProperty.cs` interface
-  - [ ] `string GetKey()` method
-  - [ ] `object GetValue()` method
-- [ ] Create `IProvidesScrollMetadata.cs` interface
-  - [ ] `string GetPageName()` method
-  - [ ] `object? GetPreviousPage()` method
-  - [ ] `object? GetNextPage()` method
-  - [ ] `object? GetCurrentPage()` method
+- [x] Create `IIgnoreFirstLoad.cs` (marker interface)
+- [x] Create `IMergeable.cs` interface
+  - [x] `bool ShouldMerge()` method
+  - [x] `string? GetMergePath()` method
+  - [x] `bool IsDeepMerge()` method
+  - [x] `bool OnlyOnPartial()` method
+- [x] Create `IOnceable.cs` interface
+  - [x] `bool IsOnce()` method
+- [x] Create `IProvidesInertiaProperties.cs` interface
+  - [x] `Dictionary<string, object> ToInertiaProperties()` method
+- [x] Create `IProvidesInertiaProperty.cs` interface
+  - [x] `string GetKey()` method
+  - [x] `object GetValue()` method
+- [x] Create `IProvidesScrollMetadata.cs` interface
+  - [x] `string GetPageName()` method
+  - [x] `object? GetPreviousPage()` method
+  - [x] `object? GetNextPage()` method
+  - [x] `object? GetCurrentPage()` method
 
 ### Property Implementations
 
