@@ -17,7 +17,7 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [x] Create .NET solution file (`inertia-dotnet.sln`)
 - [x] Create `src/` directory
 - [x] Create `tests/` directory
-- [ ] Create `samples/` directory
+- [x] Create `samples/` directory
 - [x] Create `docs/` directory
 - [x] Update `.gitignore` for .NET projects
 
@@ -34,15 +34,15 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [x] Configure NuGet metadata for Inertia.AspNetCore
 - [x] Configure NuGet metadata for Inertia.Testing
 - [x] Add LICENSE file (MIT)
-- [ ] Add README.md for NuGet
+- [x] Add README.md for NuGet
 
 ### CI/CD
 - [x] Create `.github/workflows/build.yml`
 - [x] Create `.github/workflows/test.yml`
-- [ ] Create `.github/workflows/lint.yml`
-- [ ] Create `.github/workflows/publish.yml`
-- [ ] Configure automated version bumping
-- [ ] Configure automated changelog generation
+- [x] Create `.github/workflows/lint.yml`
+- [x] Create `.github/workflows/publish.yml`
+- [x] Configure automated version bumping
+- [x] Configure automated changelog generation
 
 ---
 
@@ -88,20 +88,20 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [x] Create `InertiaOptions.cs` class
   - [x] `RootView` property (default: "app")
   - [x] `EnsurePagesExist` property (default: false)
-  - [ ] `PagePaths` property (List<string>)
-  - [ ] `PageExtensions` property (List<string>)
-  - [ ] `UseScriptElement` property (default: false)
-  - [ ] `Ssr` nested options
-    - [ ] `Enabled` property (default: true)
-    - [ ] `Url` property (default: "http://127.0.0.1:13714")
-    - [ ] `Bundle` property (string, optional)
-    - [ ] `EnsureBundleExists` property (default: true)
-  - [ ] `Testing` nested options
-    - [ ] `EnsurePagesExist` property (default: true)
-    - [ ] `PagePaths` property
-    - [ ] `PageExtensions` property
-  - [ ] `History` nested options
-    - [ ] `Encrypt` property (default: false)
+  - [x] `PagePaths` property (List<string>)
+  - [x] `PageExtensions` property (List<string>)
+  - [x] `UseScriptElement` property (default: false)
+  - [x] `Ssr` nested options
+    - [x] `Enabled` property (default: true)
+    - [x] `Url` property (default: "http://127.0.0.1:13714")
+    - [x] `Bundle` property (string, optional)
+    - [x] `EnsureBundleExists` property (default: true)
+  - [x] `Testing` nested options
+    - [x] `EnsurePagesExist` property (default: true)
+    - [x] `PagePaths` property
+    - [x] `PageExtensions` property
+  - [x] `History` nested options
+    - [x] `Encrypt` property (default: false)
 
 #### Headers
 - [x] Create `InertiaHeaders.cs` static class
@@ -691,7 +691,7 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 
 | Phase | Features | Status | Completion |
 |-------|----------|--------|------------|
-| Phase 1: Core | 33 | [🚧] | ~70% (Response System complete) |
+| Phase 1: Core | 33 | [🚧] | ~90% (Core complete, awaiting ASP.NET integration) |
 | Phase 2: Properties | 41 | [ ] | 0% |
 | Phase 3: Middleware | 18 | [ ] | 0% |
 | Phase 4: SSR | 18 | [ ] | 0% |
@@ -703,8 +703,8 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 | Phase 10: Maintenance | Ongoing | [ ] | 0% |
 
 **Total Tasks:** 400+  
-**Completed:** ~60 (Phase 1 Response System)  
-**Overall Progress:** ~15%
+**Completed:** ~70 (Phase 1 nearly complete)  
+**Overall Progress:** ~18%
 
 ---
 
@@ -718,12 +718,18 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 5. [x] Write first unit tests (55 tests passing)
 
 ### Completed in Phase 1
+- [x] Project structure and solution setup
 - [x] InertiaHeaders constants
-- [x] InertiaOptions configuration
+- [x] InertiaOptions configuration (including SSR, Testing, History nested options)
 - [x] IInertia interface
 - [x] InertiaResponse class
 - [x] InertiaResponseFactory implementation
-- [x] Comprehensive test coverage (55 tests)
+- [x] Comprehensive test coverage (55+ tests)
+- [x] CI/CD workflows (build, test, lint, publish)
+- [x] Automated version bumping and changelog generation
+- [x] NuGet package configuration
+- [x] Samples directory structure
+- [x] NuGet README
 
 ### Next Steps
 1. [ ] Implement Property Types (Phase 2)

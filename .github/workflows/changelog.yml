@@ -1,0 +1,125 @@
+name: Generate Changelog
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      from_tag:
+        description: 'Generate changelog from this tag (leave empty for latest)'
+        required: false
+        type: string
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    
+    - name: Setup Git
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+    
+    - name: Generate Changelog
+      id: changelog
+      run: |
+        FROM_TAG="${{ github.event.inputs.from_tag }}"
+        
+        if [ -z "$FROM_TAG" ]; then
+          # Get the previous tag
+          FROM_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
+        fi
+        
+        if [ -z "$FROM_TAG" ]; then
+          # No previous tag, get all commits
+          COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges)
+        else
+          # Get commits since the from tag
+          COMMITS=$(git log ${FROM_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
+        fi
+        
+        echo "COMMITS<<EOF" >> $GITHUB_OUTPUT
+        echo "$COMMITS" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+    
+    - name: Update CHANGELOG.md
+      run: |
+        VERSION="${{ github.event.release.tag_name || 'Unreleased' }}"
+        VERSION="${VERSION#v}"
+        DATE=$(date +%Y-%m-%d)
+        
+        # Create CHANGELOG if it doesn't exist
+        if [ ! -f CHANGELOG.md ]; then
+          cat > CHANGELOG.md << 'EOF'
+        # Changelog
+        
+        All notable changes to this project will be documented in this file.
+        
+        The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+        and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+        
+        EOF
+        fi
+        
+        # Categorize commits
+        FEATURES=$(echo "${{ steps.changelog.outputs.COMMITS }}" | grep -i "feat:" || echo "")
+        FIXES=$(echo "${{ steps.changelog.outputs.COMMITS }}" | grep -i "fix:" || echo "")
+        DOCS=$(echo "${{ steps.changelog.outputs.COMMITS }}" | grep -i "docs:" || echo "")
+        CHORES=$(echo "${{ steps.changelog.outputs.COMMITS }}" | grep -i "chore:" || echo "")
+        TESTS=$(echo "${{ steps.changelog.outputs.COMMITS }}" | grep -i "test:" || echo "")
+        REFACTOR=$(echo "${{ steps.changelog.outputs.COMMITS }}" | grep -i "refactor:" || echo "")
+        OTHER=$(echo "${{ steps.changelog.outputs.COMMITS }}" | grep -v -i "feat:\|fix:\|docs:\|chore:\|test:\|refactor:" || echo "")
+        
+        # Build changelog entry
+        ENTRY="## [${VERSION}] - ${DATE}\n\n"
+        
+        if [ -n "$FEATURES" ]; then
+          ENTRY="${ENTRY}### Added\n${FEATURES}\n\n"
+        fi
+        
+        if [ -n "$FIXES" ]; then
+          ENTRY="${ENTRY}### Fixed\n${FIXES}\n\n"
+        fi
+        
+        if [ -n "$REFACTOR" ]; then
+          ENTRY="${ENTRY}### Changed\n${REFACTOR}\n\n"
+        fi
+        
+        if [ -n "$DOCS" ]; then
+          ENTRY="${ENTRY}### Documentation\n${DOCS}\n\n"
+        fi
+        
+        if [ -n "$TESTS" ]; then
+          ENTRY="${ENTRY}### Tests\n${TESTS}\n\n"
+        fi
+        
+        if [ -n "$OTHER" ]; then
+          ENTRY="${ENTRY}### Other\n${OTHER}\n\n"
+        fi
+        
+        # Insert at line 3 (after header)
+        echo -e "$ENTRY" | cat - <(tail -n +3 CHANGELOG.md) > CHANGELOG.tmp
+        head -n 2 CHANGELOG.md > CHANGELOG.new
+        cat CHANGELOG.tmp >> CHANGELOG.new
+        mv CHANGELOG.new CHANGELOG.md
+        rm CHANGELOG.tmp
+        
+        git add CHANGELOG.md
+        git commit -m "docs: update CHANGELOG for ${VERSION}" || echo "No changes to commit"
+        git push origin HEAD
+    
+    - name: Comment on PR
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '## Changelog\n\n```\n${{ steps.changelog.outputs.COMMITS }}\n```'
+          })

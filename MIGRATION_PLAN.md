@@ -217,12 +217,16 @@ The inertia-laravel adapter provides server-side functionality for building mode
   - Test workflow
   - Linting/static analysis
   - Package publishing
+  - Automated version bumping
+  - Automated changelog generation
 
 #### 1.2 Core Classes
 - [x] `IInertia` interface (equivalent to ResponseFactory)
 - [x] `InertiaResponse` class (equivalent to Response)
 - [x] `InertiaResponseFactory` implementation
-- [x] `InertiaOptions` configuration class
+- [x] `InertiaOptions` configuration class (with SSR, Testing, and History nested options)
+- [x] `InertiaHeaders` constants class
+- [x] Component existence validation logic
 - [ ] Service registration extensions (`AddInertia()`) - deferred to Phase 3
 
 #### 1.3 Basic Features
