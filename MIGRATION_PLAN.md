@@ -241,12 +241,12 @@ The inertia-laravel adapter provides server-side functionality for building mode
 **Goal:** Implement all property wrapper types
 
 #### 2.1 Property Interfaces
-- [ ] `IIgnoreFirstLoad` (marker interface)
-- [ ] `IMergeable` interface
-- [ ] `IOnceable` interface
-- [ ] `IProvidesInertiaProperties` interface
-- [ ] `IProvidesInertiaProperty` interface
-- [ ] `IProvidesScrollMetadata` interface
+- [x] `IIgnoreFirstLoad` (marker interface)
+- [x] `IMergeable` interface
+- [x] `IOnceable` interface
+- [x] `IProvidesInertiaProperties` interface
+- [x] `IProvidesInertiaProperty` interface
+- [x] `IProvidesScrollMetadata` interface
 
 #### 2.2 Property Implementations
 - [ ] `OptionalProp` - Optional/lazy loading
