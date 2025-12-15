@@ -32,7 +32,7 @@ The inertia-laravel adapter provides server-side functionality for building mode
 - `helpers.php` (37 lines) - Helper functions
 
 #### 2. **Property Types** (10 files)
-- `LazyProp.php` (36 lines) - Deprecated, use OptionalProp
+- `LazyProp.php` (36 lines) - Deprecated in Laravel, not implemented in .NET (use OptionalProp)
 - `OptionalProp.php` (39 lines) - Properties loaded only when requested
 - `DeferProp.php` (59 lines) - Properties loaded asynchronously after page render
 - `AlwaysProp.php` (39 lines) - Properties always included in responses
@@ -249,20 +249,21 @@ The inertia-laravel adapter provides server-side functionality for building mode
 - [x] `IProvidesScrollMetadata` interface
 
 #### 2.2 Property Implementations
-- [ ] `OptionalProp` - Optional/lazy loading
-- [ ] `DeferProp` - Deferred loading with groups
-- [ ] `AlwaysProp` - Always included
-- [ ] `MergeProp` - Shallow/deep merge
-- [ ] `ScrollProp` - Pagination with merge
-- [ ] `OnceProp` - Cache across navigations
-- [ ] `LazyProp` (deprecated, alias to OptionalProp)
+- [x] `OptionalProp` - Optional/lazy loading
+- [x] `DeferProp` - Deferred loading with groups
+- [x] `AlwaysProp` - Always included
+- [x] `MergeProp` - Shallow/deep merge
+- [x] `ScrollProp` - Pagination with merge
+- [x] `ScrollMetadata` - Pagination metadata helper
+- [x] `OnceProp` - Cache across navigations
+- [x] ~~`LazyProp`~~ - Not implemented (deprecated in Laravel, use OptionalProp instead)
 
 #### 2.3 Property Resolution
-- [ ] Property context tracking
-- [ ] Render context management
-- [ ] Callback resolution with DI support
-- [ ] Merge strategy implementation
-- [ ] Once resolution caching
+- [ ] Property context tracking (deferred to Phase 3)
+- [ ] Render context management (deferred to Phase 3)
+- [ ] Callback resolution with DI support (deferred to Phase 3)
+- [ ] Merge strategy implementation (deferred to Phase 3)
+- [ ] Once resolution caching (deferred to Phase 3)
 
 ### Phase 3: Middleware (Week 4)
 
