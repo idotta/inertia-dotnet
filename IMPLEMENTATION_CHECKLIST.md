@@ -221,10 +221,10 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [x] `Resolve()` method (async)
   - [x] Resolution caching
 
-#### LazyProp (Deprecated)
-- [x] Create `LazyProp.cs` class (alias to OptionalProp)
-  - [x] Mark with `[Obsolete]` attribute
-  - [x] Inherit from OptionalProp
+#### LazyProp (Not Supported)
+- [x] ~~`LazyProp` is not implemented~~ - Use `OptionalProp` instead
+  - Note: LazyProp was deprecated in inertia-laravel v2.x in favor of OptionalProp
+  - This adapter does not include the deprecated LazyProp class
 
 ### Property Resolution System
 - [ ] Create `PropertyContext.cs` class
@@ -254,7 +254,6 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [x] `ScrollPropTests.cs` (10+ tests) - ✅ 23 tests
 - [x] `ScrollMetadataTests.cs` - ✅ 16 tests
 - [x] `OncePropTests.cs` (8+ tests) - ✅ 7 tests
-- [x] `LazyPropTests.cs` - ✅ 7 tests
 - [ ] `PropertyResolutionTests.cs` (15+ tests) - Deferred to Phase 3
 
 ---

@@ -32,7 +32,7 @@ The inertia-laravel adapter provides server-side functionality for building mode
 - `helpers.php` (37 lines) - Helper functions
 
 #### 2. **Property Types** (10 files)
-- `LazyProp.php` (36 lines) - Deprecated, use OptionalProp
+- `LazyProp.php` (36 lines) - Deprecated in Laravel, not implemented in .NET (use OptionalProp)
 - `OptionalProp.php` (39 lines) - Properties loaded only when requested
 - `DeferProp.php` (59 lines) - Properties loaded asynchronously after page render
 - `AlwaysProp.php` (39 lines) - Properties always included in responses
@@ -256,7 +256,7 @@ The inertia-laravel adapter provides server-side functionality for building mode
 - [x] `ScrollProp` - Pagination with merge
 - [x] `ScrollMetadata` - Pagination metadata helper
 - [x] `OnceProp` - Cache across navigations
-- [x] `LazyProp` (deprecated, alias to OptionalProp)
+- [x] ~~`LazyProp`~~ - Not implemented (deprecated in Laravel, use OptionalProp instead)
 
 #### 2.3 Property Resolution
 - [ ] Property context tracking (deferred to Phase 3)
