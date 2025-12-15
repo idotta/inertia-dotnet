@@ -1,36 +1,43 @@
 namespace Inertia.Core.Properties;
 
 /// <summary>
-/// Interface for objects that provide a single Inertia property with a custom key.
+/// Interface for objects that provide a single Inertia property value with access to property context.
 /// </summary>
 /// <remarks>
-/// This interface allows custom objects to be converted into a single named property
-/// in an Inertia response. The key returned by <see cref="GetKey"/> will be used as
-/// the property name, and the value from <see cref="GetValue"/> will be the property value.
+/// This interface allows custom objects to be converted into a value for an Inertia response property.
+/// Unlike IProvidesInertiaProperties which provides multiple properties, this interface transforms
+/// an object into a single property value within the context of a specific property key.
+/// 
+/// The PropertyContext provides information about the property being resolved, including its key,
+/// all props in the response, and the HTTP request, allowing for context-aware value generation.
 /// 
 /// This is useful for custom value objects or data transfer objects that need to control
-/// how they are serialized and named in the Inertia response.
+/// how they are serialized based on the context in which they appear.
 /// </remarks>
 /// <example>
 /// <code>
-/// public class CurrentDate : IProvidesInertiaProperty
+/// public class ConditionalValue : IProvidesInertiaProperty
 /// {
-///     public string GetKey() => "currentDate";
-///     public object GetValue() => DateTime.Now.ToString("yyyy-MM-dd");
+///     private readonly object _value;
+///     
+///     public ConditionalValue(object value) => _value = value;
+///     
+///     public object? ToInertiaProperty(PropertyContext context)
+///     {
+///         // Only include value if user is authenticated
+///         return context.Request.HttpContext.User.Identity?.IsAuthenticated == true 
+///             ? _value 
+///             : null;
+///     }
 /// }
 /// </code>
 /// </example>
 public interface IProvidesInertiaProperty
 {
     /// <summary>
-    /// Gets the property key (name) that should be used in the Inertia response.
+    /// Converts this object into a property value for the Inertia response with access to the property context.
     /// </summary>
-    /// <returns>The property key as a string.</returns>
-    string GetKey();
-
-    /// <summary>
-    /// Gets the property value that should be included in the Inertia response.
-    /// </summary>
+    /// <param name="context">The property context providing information about the property being resolved.</param>
     /// <returns>The property value.</returns>
-    object? GetValue();
+    object? ToInertiaProperty(object context);
 }

@@ -32,9 +32,12 @@ public static class InertiaServiceCollectionExtensions
         // Configure options
         services.Configure(configure);
 
+        // Register HttpContextAccessor (required for property resolution)
+        services.AddHttpContextAccessor();
+
         // Register IInertia as scoped (per-request)
-        // This ensures each request gets its own instance with isolated shared props
-        services.TryAddScoped<IInertia, InertiaResponseFactory>();
+        // Use AspNetCoreInertiaResponseFactory for HTTP-aware property resolution
+        services.TryAddScoped<IInertia, AspNetCoreInertiaResponseFactory>();
 
         return services;
     }

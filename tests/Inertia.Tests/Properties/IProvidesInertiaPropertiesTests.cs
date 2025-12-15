@@ -33,10 +33,11 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnEmptyDictionary()
     {
         // Arrange
+        var context = new object(); // Mock context
         var implementor = new TestPropertiesProviderEmpty();
 
         // Act
-        var result = implementor.ToInertiaProperties();
+        var result = implementor.ToInertiaProperties(context);
 
         // Assert
         result.Should().BeEmpty();
@@ -46,10 +47,11 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnMultipleProperties()
     {
         // Arrange
+        var context = new object(); // Mock context
         var implementor = new TestPropertiesProviderMultiple();
 
         // Act
-        var result = implementor.ToInertiaProperties();
+        var result = implementor.ToInertiaProperties(context);
 
         // Assert
         result.Should().HaveCount(3);
@@ -62,10 +64,11 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnDifferentTypes()
     {
         // Arrange
+        var context = new object(); // Mock context
         var implementor = new TestPropertiesProviderVariousTypes();
 
         // Act
-        var result = implementor.ToInertiaProperties();
+        var result = implementor.ToInertiaProperties(context);
 
         // Assert
         result["string"].Should().BeOfType<string>();
@@ -78,10 +81,11 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_CanReturnNullValues()
     {
         // Arrange
+        var context = new object(); // Mock context
         var implementor = new TestPropertiesProviderWithNulls();
 
         // Act
-        var result = implementor.ToInertiaProperties();
+        var result = implementor.ToInertiaProperties(context);
 
         // Assert
         result.Should().ContainKey("nullValue");
@@ -92,6 +96,7 @@ public class IProvidesInertiaPropertiesTests
     public void IProvidesInertiaProperties_Implementation_RealWorldExample()
     {
         // Arrange - Simulate a view model
+        var context = new object(); // Mock context
         var implementor = new UserViewModel
         {
             FirstName = "John",
@@ -101,7 +106,7 @@ public class IProvidesInertiaPropertiesTests
         };
 
         // Act
-        var result = implementor.ToInertiaProperties();
+        var result = implementor.ToInertiaProperties(context);
 
         // Assert
         result.Should().HaveCount(4);
@@ -114,7 +119,7 @@ public class IProvidesInertiaPropertiesTests
     // Test implementations
     private class TestPropertiesProviderEmpty : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties()
+        public Dictionary<string, object?> ToInertiaProperties(object context)
         {
             return new Dictionary<string, object?>();
         }
@@ -122,7 +127,7 @@ public class IProvidesInertiaPropertiesTests
 
     private class TestPropertiesProviderMultiple : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties()
+        public Dictionary<string, object?> ToInertiaProperties(object context)
         {
             return new Dictionary<string, object?>
             {
@@ -135,7 +140,7 @@ public class IProvidesInertiaPropertiesTests
 
     private class TestPropertiesProviderVariousTypes : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties()
+        public Dictionary<string, object?> ToInertiaProperties(object context)
         {
             return new Dictionary<string, object?>
             {
@@ -149,7 +154,7 @@ public class IProvidesInertiaPropertiesTests
 
     private class TestPropertiesProviderWithNulls : IProvidesInertiaProperties
     {
-        public Dictionary<string, object?> ToInertiaProperties()
+        public Dictionary<string, object?> ToInertiaProperties(object context)
         {
             return new Dictionary<string, object?>
             {
@@ -165,7 +170,7 @@ public class IProvidesInertiaPropertiesTests
         public string Email { get; set; } = string.Empty;
         public bool IsAdmin { get; set; }
 
-        public Dictionary<string, object?> ToInertiaProperties()
+        public Dictionary<string, object?> ToInertiaProperties(object context)
         {
             return new Dictionary<string, object?>
             {
