@@ -30,4 +30,16 @@ public static class InertiaApplicationBuilderExtensions
     {
         return app.UseMiddleware<InertiaMiddleware>();
     }
+
+    /// <summary>
+    /// Adds the Inertia history encryption middleware to the application's request pipeline.
+    /// This enables encryption of browser history state for enhanced security.
+    /// This should be called before UseInertia().
+    /// </summary>
+    /// <param name="app">The <see cref="IApplicationBuilder"/>.</param>
+    /// <returns>The <see cref="IApplicationBuilder"/> so that additional calls can be chained.</returns>
+    public static IApplicationBuilder UseInertiaEncryptHistory(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<EncryptHistoryMiddleware>();
+    }
 }
