@@ -28,8 +28,8 @@ jobs:
           CURRENT_COMMIT=$(git rev-parse HEAD)
           echo "Current commit: $CURRENT_COMMIT"
           
-          # Get latest commit on default branch (2.x)
-          LATEST_COMMIT=$(git rev-parse origin/HEAD)
+          # Get latest commit on 2.x branch (the default branch)
+          LATEST_COMMIT=$(git rev-parse origin/2.x)
           echo "Latest commit: $LATEST_COMMIT"
           
           # Check if there are updates
@@ -54,9 +54,9 @@ jobs:
         uses: actions/github-script@v7
         with:
           script: |
-            const newCommits = `${{ steps.check.outputs.new_commits }}`;
-            const currentCommit = `${{ steps.check.outputs.current_commit }}`;
-            const latestCommit = `${{ steps.check.outputs.latest_commit }}`;
+            const newCommits = ${{ toJSON(steps.check.outputs.new_commits) }};
+            const currentCommit = ${{ toJSON(steps.check.outputs.current_commit) }};
+            const latestCommit = ${{ toJSON(steps.check.outputs.latest_commit) }};
             
             const issueTitle = `[Submodule Update] inertia-laravel has new commits`;
             const issueBody = `## inertia-laravel Submodule Update Available
