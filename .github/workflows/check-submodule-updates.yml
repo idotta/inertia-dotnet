@@ -28,8 +28,8 @@ jobs:
           CURRENT_COMMIT=$(git rev-parse HEAD)
           echo "Current commit: $CURRENT_COMMIT"
           
-          # Get latest commit on main branch
-          LATEST_COMMIT=$(git rev-parse origin/main)
+          # Get latest commit on default branch (2.x)
+          LATEST_COMMIT=$(git rev-parse origin/HEAD)
           echo "Latest commit: $LATEST_COMMIT"
           
           # Check if there are updates
