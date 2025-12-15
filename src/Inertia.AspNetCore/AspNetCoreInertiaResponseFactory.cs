@@ -200,11 +200,8 @@ public class AspNetCoreInertiaResponseFactory : IInertia
     }
 
     /// <summary>
-    /// Resolves all property instances recursively, handling:
-    /// - Closures/callbacks (Func<T>, Func<Task<T>>)
-    /// - Property types (OptionalProp, DeferProp, AlwaysProp, etc.)
-    /// - Property providers (IProvidesInertiaProperty)
-    /// - Nested dictionaries and enumerables
+    /// Resolves all property instances recursively, handling closures, callbacks,
+    /// property types, property providers, and nested dictionaries.
     /// </summary>
     private async Task<Dictionary<string, object?>> ResolvePropertyInstancesAsync(
         Dictionary<string, object?> props,
