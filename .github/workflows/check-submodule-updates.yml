@@ -1,0 +1,120 @@
+name: Check Submodule Updates
+
+on:
+  schedule:
+    # Run every Monday at 9:00 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  check-updates:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+      
+      - name: Check for submodule updates
+        id: check
+        run: |
+          # Fetch latest changes from submodule
+          cd inertia-laravel
+          git fetch origin
+          
+          # Get current commit
+          CURRENT_COMMIT=$(git rev-parse HEAD)
+          echo "Current commit: $CURRENT_COMMIT"
+          
+          # Get latest commit on main branch
+          LATEST_COMMIT=$(git rev-parse origin/main)
+          echo "Latest commit: $LATEST_COMMIT"
+          
+          # Check if there are updates
+          if [ "$CURRENT_COMMIT" != "$LATEST_COMMIT" ]; then
+            echo "updates_available=true" >> $GITHUB_OUTPUT
+            echo "current_commit=$CURRENT_COMMIT" >> $GITHUB_OUTPUT
+            echo "latest_commit=$LATEST_COMMIT" >> $GITHUB_OUTPUT
+            
+            # Get list of new commits
+            echo "new_commits<<EOF" >> $GITHUB_OUTPUT
+            git log --oneline $CURRENT_COMMIT..$LATEST_COMMIT >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            
+            echo "Updates are available!"
+          else
+            echo "updates_available=false" >> $GITHUB_OUTPUT
+            echo "No updates available."
+          fi
+      
+      - name: Create issue for updates
+        if: steps.check.outputs.updates_available == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const newCommits = `${{ steps.check.outputs.new_commits }}`;
+            const currentCommit = `${{ steps.check.outputs.current_commit }}`;
+            const latestCommit = `${{ steps.check.outputs.latest_commit }}`;
+            
+            const issueTitle = `[Submodule Update] inertia-laravel has new commits`;
+            const issueBody = `## inertia-laravel Submodule Update Available
+            
+            New commits are available in the inertia-laravel submodule.
+            
+            **Current commit:** \`${currentCommit.substring(0, 7)}\`
+            **Latest commit:** \`${latestCommit.substring(0, 7)}\`
+            
+            ### New Commits
+            \`\`\`
+            ${newCommits}
+            \`\`\`
+            
+            ### Action Required
+            
+            1. Review the changes in the [inertia-laravel repository](https://github.com/inertiajs/inertia-laravel/compare/${currentCommit}...${latestCommit})
+            2. Update the submodule:
+               \`\`\`bash
+               git submodule update --remote inertia-laravel
+               git add inertia-laravel
+               git commit -m "Update inertia-laravel submodule to ${latestCommit.substring(0, 7)}"
+               \`\`\`
+            3. Migrate new features to C# following [MIGRATION.md](https://github.com/${{ github.repository }}/blob/main/MIGRATION.md)
+            4. Test the changes
+            5. Update documentation as needed
+            
+            See [MIGRATION.md](https://github.com/${{ github.repository }}/blob/main/MIGRATION.md) for detailed migration guidelines.`;
+            
+            // Check if an issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'submodule-update'
+            });
+            
+            const existingIssue = issues.data.find(issue => 
+              issue.title.includes('[Submodule Update]')
+            );
+            
+            if (existingIssue) {
+              // Update existing issue with new information
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: existingIssue.number,
+                body: `## New Update Available\n\n${issueBody}`
+              });
+              console.log(`Updated existing issue #${existingIssue.number}`);
+            } else {
+              // Create new issue
+              const issue = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: issueTitle,
+                body: issueBody,
+                labels: ['submodule-update', 'enhancement']
+              });
+              console.log(`Created issue #${issue.data.number}`);
+            }

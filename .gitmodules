@@ -1,0 +1,3 @@
+[submodule "inertia-laravel"]
+	path = inertia-laravel
+	url = https://github.com/inertiajs/inertia-laravel.git
