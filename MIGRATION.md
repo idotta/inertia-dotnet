@@ -147,3 +147,4 @@ To maintain feature parity:
 - [inertia-laravel GitHub Repository](https://github.com/inertiajs/inertia-laravel)
 - [Inertia.js Documentation](https://inertiajs.com/)
 - [ASP.NET Core Documentation](https://learn.microsoft.com/aspnet/core/)
+- [.NET API Reference](https://learn.microsoft.com/dotnet/api/)

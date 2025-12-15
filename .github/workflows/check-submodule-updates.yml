@@ -52,11 +52,15 @@ jobs:
       - name: Create issue for updates
         if: steps.check.outputs.updates_available == 'true'
         uses: actions/github-script@v7
+        env:
+          NEW_COMMITS: ${{ steps.check.outputs.new_commits }}
+          CURRENT_COMMIT: ${{ steps.check.outputs.current_commit }}
+          LATEST_COMMIT: ${{ steps.check.outputs.latest_commit }}
         with:
           script: |
-            const newCommits = ${{ toJSON(steps.check.outputs.new_commits) }};
-            const currentCommit = ${{ toJSON(steps.check.outputs.current_commit) }};
-            const latestCommit = ${{ toJSON(steps.check.outputs.latest_commit) }};
+            const newCommits = process.env.NEW_COMMITS;
+            const currentCommit = process.env.CURRENT_COMMIT;
+            const latestCommit = process.env.LATEST_COMMIT;
             
             const issueTitle = `[Submodule Update] inertia-laravel has new commits`;
             const issueBody = `## inertia-laravel Submodule Update Available
