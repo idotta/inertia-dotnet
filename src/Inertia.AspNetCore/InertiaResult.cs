@@ -68,8 +68,8 @@ public class InertiaResult : IActionResult
             var viewResult = new ViewResult
             {
                 ViewName = _response.RootView,
-                ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(
-                    new Microsoft.AspNetCore.Mvc.ModelBinding.EmptyModelMetadataProvider(),
+                ViewData = new ViewDataDictionary(
+                    new EmptyModelMetadataProvider(),
                     context.ModelState)
                 {
                     ["page"] = pageData
