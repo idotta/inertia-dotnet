@@ -27,6 +27,7 @@ You are a Senior .NET Architect porting `inertia-laravel` to ASP.NET Core.
 - **Var:** Use `var` when the type is obvious.
 - Prefer **Microsoft.Extensions.DependencyInjection**.
 - Use **xUnit** for testing with fluent assertions.
+- Use `dotnet format` to avoid lint errors
 
 ### 3. Project Structure & Architecture
 - `src/Inertia.Core`: Core logic, independent of ASP.NET Core if possible.
