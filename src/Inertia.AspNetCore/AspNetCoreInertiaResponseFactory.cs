@@ -440,9 +440,9 @@ public class AspNetCoreInertiaResponseFactory : IInertia
             value = DeserializeJsonElement(document.RootElement);
             return true;
         }
-        catch
+        catch (JsonException)
         {
-            // If deserialization fails, treat as cache miss
+            // If deserialization fails (e.g., invalid JSON), treat as cache miss
             return false;
         }
     }
@@ -485,22 +485,21 @@ public class AspNetCoreInertiaResponseFactory : IInertia
 
         var sessionKey = GetSessionKey(propKey);
 
-        if (value == null)
+        try
         {
-            sessionFeature.Session.SetString(sessionKey, "null");
+            // Use JsonSerializer.Serialize for both null and non-null values for consistency
+            var json = JsonSerializer.Serialize(value);
+            sessionFeature.Session.SetString(sessionKey, json);
         }
-        else
+        catch (JsonException)
         {
-            try
-            {
-                var json = JsonSerializer.Serialize(value);
-                sessionFeature.Session.SetString(sessionKey, json);
-            }
-            catch
-            {
-                // If serialization fails, don't cache
-                // This is graceful degradation - the prop will still work, just won't be cached
-            }
+            // If serialization fails, don't cache
+            // This is graceful degradation - the prop will still work, just won't be cached
+        }
+        catch (NotSupportedException)
+        {
+            // Some types cannot be serialized (e.g., types with circular references)
+            // This is graceful degradation - the prop will still work, just won't be cached
         }
     }
 
