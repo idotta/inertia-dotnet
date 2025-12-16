@@ -60,9 +60,10 @@ $props = [
 The response should include metadata about merge, defer, and scroll props in response headers/body to inform the client how to handle them properly.
 
 **Current Status:**  
+- ✅ **COMPLETED** - Metadata integration has been implemented
 - Property types (MergeProp, DeferProp, ScrollProp) exist and work
 - Properties are resolved correctly
-- Metadata is NOT added to the response
+- Metadata IS added to the response
 
 **Laravel Reference:**
 ```php
@@ -90,6 +91,18 @@ The response should include metadata about merge, defer, and scroll props in res
 **Estimated Effort:** Medium (requires response structure modifications)
 
 **Priority:** Low-Medium - Useful for advanced features but client can work without explicit metadata
+
+**Implementation Date:** December 2024
+
+**Implementation Summary:**
+- Added `MergeProps` and `DeferredProps` list properties to `InertiaResponse.cs`
+- Implemented metadata collection in `AspNetCoreInertiaResponseFactory.cs` during property resolution
+- Metadata is collected recursively, supporting nested properties with dot notation (e.g., `data.stats`)
+- ScrollProp instances are tracked as merge props since they have merge behavior
+- Metadata is filtered to only include properties that remain after partial reload filtering
+- Response serialization in `BuildPageDataAsync` includes metadata arrays in JSON output
+- Comprehensive test coverage with 10 new tests (4 unit tests, 6 integration tests)
+- Tests verify metadata collection, filtering, nested properties, and JSON serialization
 
 ---
 
@@ -148,8 +161,8 @@ For Once Props Session Caching:
 - [x] Graceful degradation when session is not configured
 
 For Metadata Headers:
-- [ ] Response includes `mergeProps` array
-- [ ] Response includes `deferredProps` array  
-- [ ] Response includes scroll metadata when applicable
-- [ ] Client can consume metadata correctly
-- [ ] Tests verify metadata is included
+- [x] Response includes `mergeProps` array
+- [x] Response includes `deferredProps` array  
+- [x] Response includes scroll metadata when applicable (scroll props are tracked as merge props)
+- [x] Client can consume metadata correctly
+- [x] Tests verify metadata is included
