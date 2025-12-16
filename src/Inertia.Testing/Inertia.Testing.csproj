@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <LangVersion>12.0</LangVersion>
+    <IsPackable>true</IsPackable>
+    <IsTestProject>false</IsTestProject>
     
     <!-- NuGet Package Metadata -->
     <PackageId>Inertia.Testing</PackageId>
@@ -31,8 +33,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="xunit.assert" Version="2.6.2" />
     <PackageReference Include="xunit.abstractions" Version="2.0.3" />
-    <PackageReference Include="FluentAssertions" Version="6.12.0" />
   </ItemGroup>
 
   <ItemGroup>
