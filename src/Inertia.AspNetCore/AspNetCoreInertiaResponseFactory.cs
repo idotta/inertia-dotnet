@@ -654,10 +654,7 @@ public class AspNetCoreInertiaResponseFactory : IInertia
             if (value is Dictionary<string, object?> nestedDict)
             {
                 var nestedKeys = GetAllPropertyKeys(nestedDict, currentKey);
-                foreach (var nestedKey in nestedKeys)
-                {
-                    keys.Add(nestedKey);
-                }
+                keys.UnionWith(nestedKeys);
             }
         }
 
