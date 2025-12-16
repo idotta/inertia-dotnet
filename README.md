@@ -1,5 +1,173 @@
 # inertia-dotnet
-The dotnet adapter for Inertia.js.
+
+[![NuGet](https://img.shields.io/nuget/v/Inertia.AspNetCore.svg)](https://www.nuget.org/packages/Inertia.AspNetCore/)
+[![Build Status](https://github.com/idotta/inertia-dotnet/workflows/Build/badge.svg)](https://github.com/idotta/inertia-dotnet/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
+The official .NET adapter for [Inertia.js](https://inertiajs.com/). Build modern single-page applications using classic server-side routing and controllers.
+
+> **Note:** This project is currently in active development (Phase 5 complete - Testing Infrastructure). See [Migration Status](#migration-status) for details.
+
+## Features
+
+✅ **Fully Implemented:**
+- 🎯 **Core Response Rendering** - Component and props management
+- 🔄 **Property Types** - Optional, Deferred, Always, Merge, Scroll, and Once props
+- 🛡️ **Middleware** - Request handling, version checking, validation
+- 🎨 **TagHelpers** - Razor view integration
+- ⚡ **Server-Side Rendering (SSR)** - Node.js integration with health checks
+- 🧪 **Testing Utilities** - Fluent assertions for Inertia responses
+- 📦 **Asset Versioning** - Automatic cache busting
+- 🔐 **History Encryption** - Enhanced security for browser state
+
+## Installation
+
+```bash
+dotnet add package Inertia.AspNetCore
+```
+
+## Quick Start
+
+### 1. Configure Services
+
+Add Inertia to your ASP.NET Core application in `Program.cs`:
+
+```csharp
+using Inertia.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+// Add Inertia services
+builder.Services.AddInertia(options =>
+{
+    options.RootView = "app";  // Your root Razor view
+    options.Ssr.Enabled = true;
+    options.Ssr.Url = "http://127.0.0.1:13714";
+});
+
+builder.Services.AddControllersWithViews();
+
+var app = builder.Build();
+
+// Add Inertia middleware
+app.UseInertia<HandleInertiaRequests>();
+
+app.MapControllers();
+app.Run();
+```
+
+### 2. Create Middleware Handler
+
+Create a class that extends `HandleInertiaRequests`:
+
+```csharp
+using Inertia.AspNetCore;
+
+public class HandleInertiaRequests : Inertia.AspNetCore.HandleInertiaRequests
+{
+    protected override Dictionary<string, object?> Share(HttpRequest request)
+    {
+        return new Dictionary<string, object?>
+        {
+            ["appName"] = "My Inertia App",
+            ["user"] = new { Name = "John Doe", Email = "john@example.com" }
+        };
+    }
+
+    protected override string? Version(HttpRequest request)
+    {
+        // Return a hash of your assets for cache busting
+        return "1.0.0";
+    }
+}
+```
+
+### 3. Create Your Root View
+
+Create a Razor view (`Views/Shared/app.cshtml`):
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My Inertia App</title>
+    @* Your CSS imports *@
+</head>
+<body>
+    <inertia />
+    @* Your JavaScript bundle *@
+    <script src="~/js/app.js" asp-append-version="true"></script>
+</body>
+</html>
+```
+
+### 4. Return Inertia Responses
+
+Use the `IInertia` service in your controllers:
+
+```csharp
+using Inertia;
+using Microsoft.AspNetCore.Mvc;
+
+public class UsersController : Controller
+{
+    private readonly IInertia _inertia;
+
+    public UsersController(IInertia inertia)
+    {
+        _inertia = inertia;
+    }
+
+    public async Task<IActionResult> Index()
+    {
+        var users = await GetUsersAsync();
+        
+        return await _inertia.RenderAsync("Users/Index", new
+        {
+            users = users
+        });
+    }
+}
+```
+
+### 5. Create Your Frontend Component
+
+Create a React/Vue/Svelte component (example with React):
+
+```jsx
+// resources/js/Pages/Users/Index.jsx
+import { Head } from '@inertiajs/react'
+
+export default function Index({ users }) {
+  return (
+    <>
+      <Head title="Users" />
+      <h1>Users</h1>
+      <ul>
+        {users.map(user => (
+          <li key={user.id}>{user.name}</li>
+        ))}
+      </ul>
+    </>
+  )
+}
+```
+
+That's it! You now have a working Inertia.js application with ASP.NET Core.
+
+## Documentation
+
+📚 **Comprehensive guides available:**
+
+- **[Getting Started](docs/getting-started.md)** - Detailed setup guide
+- **[Responses](docs/responses.md)** - Working with Inertia responses
+- **[Property Types](docs/properties.md)** - Optional, Deferred, Merge, and more
+- **[Middleware](docs/middleware.md)** - Request handling and shared data
+- **[Server-Side Rendering](docs/ssr-setup.md)** - SSR configuration and setup
+- **[Testing](docs/testing.md)** - Testing your Inertia applications
+- **[Migration from Laravel](docs/migration-from-laravel.md)** - Laravel to .NET guide
 
 ## Project Goal
 
@@ -7,26 +175,27 @@ This project aims to stay feature-complete and on par with [inertia-laravel](htt
 
 ## Migration Status
 
-🎯 **Planning Phase Complete** - Comprehensive migration analysis finished!
+🎯 **Phase 5 Complete** - Testing Infrastructure Implemented!
 
-We have analyzed the entire inertia-laravel v2.0.14 codebase (46 PHP files, 170+ features) and created a complete migration plan to C#/.NET. See our planning documents:
+| Phase | Status | Features |
+|-------|--------|----------|
+| Phase 1: Core Infrastructure | ✅ Complete | Response rendering, configuration |
+| Phase 2: Property Types | ✅ Complete | Optional, Deferred, Always, Merge, Scroll, Once |
+| Phase 3: Middleware | ✅ Complete | Request handling, validation, encryption |
+| Phase 4: SSR | ✅ Complete | Server-side rendering with Node.js |
+| Phase 5: Testing | ✅ Complete | Fluent assertions, test utilities |
+| Phase 6: CLI Tools | ⏳ Pending | Optional developer tools |
+| Phase 7: Documentation | 🚧 In Progress | Comprehensive guides |
+| Phase 8: Examples | ⏳ Pending | Sample projects |
 
-### 📚 Planning Documents
+### 📚 Planning Documents (For Contributors)
 
-- **[MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md)** - Start here! Executive summary and overview
-- **[MIGRATION_PLAN.md](MIGRATION_PLAN.md)** - Complete 12-week implementation plan
-- **[FEATURE_COMPARISON.md](FEATURE_COMPARISON.md)** - Side-by-side feature comparison (Laravel vs .NET)
-- **[IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md)** - 400+ actionable development tasks
-- **[API_MAPPING.md](API_MAPPING.md)** - Code examples: Laravel → C# conversions
+- **[MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md)** - Executive summary and overview
+- **[MIGRATION_PLAN.md](MIGRATION_PLAN.md)** - Complete implementation plan
+- **[FEATURE_COMPARISON.md](FEATURE_COMPARISON.md)** - Feature comparison (Laravel vs .NET)
+- **[IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md)** - 400+ actionable tasks
+- **[API_MAPPING.md](API_MAPPING.md)** - Code examples: Laravel → C#
 - **[MIGRATION.md](MIGRATION.md)** - Migration process guidelines
-
-### 📊 Key Statistics
-
-- **Features Identified:** 170+ across 11 categories
-- **Direct Migrations:** 152 features (89%)
-- **Adaptations Required:** 18 features (11%)
-- **Estimated Timeline:** 12 weeks to v1.0.0
-- **Target Coverage:** >80% test coverage
 
 ## inertia-laravel Submodule
 
@@ -47,34 +216,104 @@ git submodule update --remote inertia-laravel
 
 After updating, review changes and migrate new features to C#. See [MIGRATION.md](MIGRATION.md) for guidelines.
 
-## Quick Start
+## Examples
+
+Check out our [sample projects](samples/) to see Inertia.js in action:
+
+- **InertiaMinimal** - Minimal setup example
+- **InertiaReact** - Full React application
+- **InertiaVue** - Full Vue 3 application  
+- **InertiaSsr** - Server-side rendering example
+
+## Advanced Features
+
+### Property Types
+
+Control how data is loaded and merged:
+
+```csharp
+using static Inertia.LazyProps;
+
+return await _inertia.RenderAsync("Dashboard", new
+{
+    // Always included, bypasses partial reload filtering
+    user = Always(() => GetCurrentUser()),
+    
+    // Loaded only when explicitly requested
+    posts = Optional(() => GetPosts()),
+    
+    // Loaded asynchronously after initial render
+    stats = Defer(() => CalculateStatsAsync()),
+    
+    // Merged with client-side data
+    notifications = Merge(() => GetNotifications()),
+    
+    // Cached and reused across navigations
+    settings = Once(() => GetSettings())
+});
+```
+
+### Server-Side Rendering
+
+Enable SSR for improved performance and SEO:
+
+```csharp
+builder.Services.AddInertia(options =>
+{
+    options.Ssr.Enabled = true;
+    options.Ssr.Url = "http://127.0.0.1:13714";
+    options.Ssr.Bundle = "wwwroot/ssr/ssr.mjs"; // Auto-detected if not specified
+});
+```
+
+### Testing
+
+Test your Inertia responses with fluent assertions:
+
+```csharp
+using Inertia.Testing;
+
+[Fact]
+public async Task ItRendersUsersPage()
+{
+    var response = await Client.GetAsync("/users");
+    
+    response.AssertInertia(inertia => inertia
+        .WithComponent("Users/Index")
+        .Has("users")
+        .WithCount("users", 10)
+        .Where("users.0.name", "John Doe")
+    );
+}
+```
+
+## Development & Contributing
+
+We welcome contributions! Here's how to get started:
 
 ### For Contributors
 
-1. **Read the planning docs** (start with MIGRATION_SUMMARY.md)
-2. **Pick a task** from IMPLEMENTATION_CHECKLIST.md
-3. **Review code examples** in API_MAPPING.md
+1. **Read the planning docs** (start with [MIGRATION_SUMMARY.md](MIGRATION_SUMMARY.md))
+2. **Pick a task** from [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md)
+3. **Review code examples** in [API_MAPPING.md](API_MAPPING.md)
 4. **Submit a PR** following our guidelines
 
-### For Users (Coming Soon)
+### Building from Source
 
 ```bash
-# Installation (after v1.0.0 release)
-dotnet add package Inertia.AspNetCore
+# Clone the repository
+git clone https://github.com/idotta/inertia-dotnet.git
+cd inertia-dotnet
+
+# Initialize submodules
+git submodule update --init --recursive
+
+# Build the solution
+dotnet build
+
+# Run tests
+dotnet test
 ```
-
-```csharp
-// Startup configuration
-services.AddInertia(options =>
-{
-    options.RootView = "app";
-    options.SsrEnabled = true;
-});
-
-app.UseInertia<HandleInertiaRequests>();
-```
-
-## Development
 
 See [MIGRATION.md](MIGRATION.md) for details on how features from inertia-laravel are migrated to this .NET implementation.
 
