@@ -4,7 +4,8 @@ namespace Inertia.Core;
 /// Provides context information about the current property being resolved.
 /// This information is available to objects implementing IProvidesInertiaProperty.
 /// </summary>
-public class PropertyContext
+/// <typeparam name="TRequest">The type of the HTTP request object.</typeparam>
+public class PropertyContext<TRequest>
 {
     /// <summary>
     /// Gets the property key being resolved.
@@ -18,17 +19,16 @@ public class PropertyContext
 
     /// <summary>
     /// Gets the HTTP request associated with this context.
-    /// When using ASP.NET Core, this will be an HttpRequest object.
     /// </summary>
-    public object Request { get; }
+    public TRequest Request { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="PropertyContext"/> class.
+    /// Initializes a new instance of the <see cref="PropertyContext{TRequest}"/> class.
     /// </summary>
     /// <param name="key">The property key being resolved.</param>
     /// <param name="props">All properties in the current render context.</param>
-    /// <param name="request">The HTTP request (typically HttpRequest for ASP.NET Core).</param>
-    public PropertyContext(string key, IDictionary<string, object?> props, object request)
+    /// <param name="request">The HTTP request.</param>
+    public PropertyContext(string key, IDictionary<string, object?> props, TRequest request)
     {
         Key = key;
         Props = props;

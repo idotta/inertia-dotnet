@@ -3,6 +3,7 @@ namespace Inertia.Core.Properties;
 /// <summary>
 /// Interface for objects that provide a single Inertia property value with access to property context.
 /// </summary>
+/// <typeparam name="TRequest">The type of the HTTP request object in the context.</typeparam>
 /// <remarks>
 /// This interface allows custom objects to be converted into a value for an Inertia response property.
 /// Unlike IProvidesInertiaProperties which provides multiple properties, this interface transforms
@@ -16,13 +17,13 @@ namespace Inertia.Core.Properties;
 /// </remarks>
 /// <example>
 /// <code>
-/// public class ConditionalValue : IProvidesInertiaProperty
+/// public class ConditionalValue : IProvidesInertiaProperty&lt;HttpRequest&gt;
 /// {
 ///     private readonly object _value;
 ///     
 ///     public ConditionalValue(object value) => _value = value;
 ///     
-///     public object? ToInertiaProperty(PropertyContext context)
+///     public object? ToInertiaProperty(PropertyContext&lt;HttpRequest&gt; context)
 ///     {
 ///         // Only include value if user is authenticated
 ///         return context.Request.HttpContext.User.Identity?.IsAuthenticated == true 
@@ -32,12 +33,12 @@ namespace Inertia.Core.Properties;
 /// }
 /// </code>
 /// </example>
-public interface IProvidesInertiaProperty
+public interface IProvidesInertiaProperty<TRequest>
 {
     /// <summary>
     /// Converts this object into a property value for the Inertia response with access to the property context.
     /// </summary>
     /// <param name="context">The property context providing information about the property being resolved.</param>
     /// <returns>The property value.</returns>
-    object? ToInertiaProperty(PropertyContext context);
+    object? ToInertiaProperty(PropertyContext<TRequest> context);
 }

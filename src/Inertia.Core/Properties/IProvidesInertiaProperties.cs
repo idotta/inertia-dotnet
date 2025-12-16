@@ -3,6 +3,7 @@ namespace Inertia.Core.Properties;
 /// <summary>
 /// Interface for objects that provide multiple Inertia properties.
 /// </summary>
+/// <typeparam name="TRequest">The type of the HTTP request object in the context.</typeparam>
 /// <remarks>
 /// This interface allows custom objects to contribute multiple properties to an Inertia response.
 /// When an object implementing this interface is passed as a prop, it will be expanded into
@@ -16,12 +17,12 @@ namespace Inertia.Core.Properties;
 /// </remarks>
 /// <example>
 /// <code>
-/// public class UserViewModel : IProvidesInertiaProperties
+/// public class UserViewModel : IProvidesInertiaProperties&lt;HttpRequest&gt;
 /// {
 ///     public string Name { get; set; }
 ///     public string Email { get; set; }
 ///     
-///     public Dictionary&lt;string, object?&gt; ToInertiaProperties(RenderContext context)
+///     public Dictionary&lt;string, object?&gt; ToInertiaProperties(RenderContext&lt;HttpRequest&gt; context)
 ///     {
 ///         return new Dictionary&lt;string, object?&gt;
 ///         {
@@ -33,12 +34,12 @@ namespace Inertia.Core.Properties;
 /// }
 /// </code>
 /// </example>
-public interface IProvidesInertiaProperties
+public interface IProvidesInertiaProperties<TRequest>
 {
     /// <summary>
     /// Converts this object into a dictionary of Inertia properties with access to the render context.
     /// </summary>
     /// <param name="context">The render context providing information about the current render operation.</param>
     /// <returns>A dictionary where keys are property names and values are the property values.</returns>
-    Dictionary<string, object?> ToInertiaProperties(RenderContext context);
+    Dictionary<string, object?> ToInertiaProperties(RenderContext<TRequest> context);
 }

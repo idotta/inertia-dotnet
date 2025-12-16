@@ -130,12 +130,12 @@ public class AspNetCoreInertiaResponseFactory : IInertia
         string component)
     {
         var newProps = new Dictionary<string, object?>();
-        var renderContext = new RenderContext(component, request);
+        var renderContext = new RenderContext<HttpRequest>(component, request);
 
         foreach (var kvp in props)
         {
             // Check if the value (not the key) is a provider
-            if (kvp.Value is IProvidesInertiaProperties provider)
+            if (kvp.Value is IProvidesInertiaProperties<HttpRequest> provider)
             {
                 // Get all properties from the provider
                 var providedProps = await Task.Run(() => provider.ToInertiaProperties(renderContext));
@@ -220,9 +220,9 @@ public class AspNetCoreInertiaResponseFactory : IInertia
             value = await ResolvePropertyTypeAsync(value);
 
             // Resolve IProvidesInertiaProperty
-            if (value is IProvidesInertiaProperty propertyProvider)
+            if (value is IProvidesInertiaProperty<HttpRequest> propertyProvider)
             {
-                var propertyContext = new PropertyContext(currentKey, props, request);
+                var propertyContext = new PropertyContext<HttpRequest>(currentKey, props, request);
                 value = await Task.Run(() => propertyProvider.ToInertiaProperty(propertyContext));
             }
 

@@ -4,7 +4,8 @@ namespace Inertia.Core;
 /// Provides context information about the current Inertia render operation.
 /// This information is available to objects implementing IProvidesInertiaProperties.
 /// </summary>
-public class RenderContext
+/// <typeparam name="TRequest">The type of the HTTP request object.</typeparam>
+public class RenderContext<TRequest>
 {
     /// <summary>
     /// Gets the component being rendered.
@@ -13,16 +14,15 @@ public class RenderContext
 
     /// <summary>
     /// Gets the HTTP request associated with this context.
-    /// When using ASP.NET Core, this will be an HttpRequest object.
     /// </summary>
-    public object Request { get; }
+    public TRequest Request { get; }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="RenderContext"/> class.
+    /// Initializes a new instance of the <see cref="RenderContext{TRequest}"/> class.
     /// </summary>
     /// <param name="component">The component being rendered.</param>
-    /// <param name="request">The HTTP request (typically HttpRequest for ASP.NET Core).</param>
-    public RenderContext(string component, object request)
+    /// <param name="request">The HTTP request.</param>
+    public RenderContext(string component, TRequest request)
     {
         Component = component;
         Request = request;

@@ -218,17 +218,17 @@ public class PropertyResolutionIntegrationTests
     }
 
     // Test helper classes
-    private class TestPropertyProvider : IProvidesInertiaProperty
+    private class TestPropertyProvider : IProvidesInertiaProperty<HttpRequest>
     {
-        public object? ToInertiaProperty(PropertyContext context)
+        public object? ToInertiaProperty(PropertyContext<HttpRequest> context)
         {
             return "provided value";
         }
     }
 
-    private class TestPropertiesProvider : IProvidesInertiaProperties
+    private class TestPropertiesProvider : IProvidesInertiaProperties<HttpRequest>
     {
-        public Dictionary<string, object?> ToInertiaProperties(RenderContext context)
+        public Dictionary<string, object?> ToInertiaProperties(RenderContext<HttpRequest> context)
         {
             return new Dictionary<string, object?>
             {
