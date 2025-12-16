@@ -357,48 +357,56 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 
 ## Phase 4: Server-Side Rendering
 
-### SSR Core ✅ (Partially completed 2025-12-16 - Basic infrastructure only)
+### SSR Core ✅ (Completed 2025-12-16)
 - [x] Create `IGateway.cs` interface
   - [x] `DispatchAsync(Dictionary<string, object?> pageData)` method
   
-- [ ] Create `IHasHealthCheck.cs` interface
-  - [ ] `IsHealthyAsync()` method
+- [x] Create `IHasHealthCheck.cs` interface ✅
+  - [x] `IsHealthyAsync()` method
   
 - [x] Create `SsrResponse.cs` class ✅
   - [x] `Head` property (string)
   - [x] `Body` property (string)
   
-- [ ] Create `SsrException.cs` class
-  - [ ] Constructor with message
-  - [ ] Additional diagnostic info
+- [x] Create `SsrException.cs` class ✅
+  - [x] Constructor with message
+  - [x] Additional diagnostic info (SsrUrl and DiagnosticInfo properties)
+  - [x] Multiple constructor overloads for flexibility
 
 ### HTTP Gateway ✅ (Completed 2025-12-16)
 - [x] Create `HttpGateway.cs`
   - [x] Implement IGateway
-  - [ ] Implement IHasHealthCheck (deferred)
+  - [x] Implement IHasHealthCheck ✅
   - [x] Constructor with IHttpClientFactory, IOptions<InertiaOptions>
   - [x] `DispatchAsync()` implementation
     - [x] POST to /render endpoint
     - [x] Parse JSON response
     - [x] Error handling with graceful fallback
     - [x] Connection exception handling
-  - [ ] `IsHealthyAsync()` implementation (deferred)
-    - [ ] GET /health endpoint
-    - [ ] Return boolean
+  - [x] `IsHealthyAsync()` implementation ✅
+    - [x] GET /health endpoint
+    - [x] Return boolean
+    - [x] Proper error handling (connection, timeout, unexpected errors)
   - [x] Private helper methods
     - [x] `ShouldDispatch()` method
     - [x] `BundleExists()` check
-  - [x] 13 comprehensive tests covering SSR gateway functionality
+  - [x] 22 comprehensive tests covering SSR gateway functionality (13 original + 9 health check tests)
 
-### Bundle Detection
-- [ ] Create `BundleDetector.cs`
-  - [ ] `Detect()` method
-  - [ ] Search common paths:
-    - [ ] `wwwroot/ssr/ssr.mjs`
-    - [ ] `wwwroot/ssr/ssr.js`
-    - [ ] `bootstrap/ssr/ssr.mjs`
-    - [ ] Custom configured path
-  - [ ] Return first found or null
+### Bundle Detection ✅ (Completed 2025-12-16)
+- [x] Create `BundleDetector.cs` ✅
+  - [x] `Detect()` method (with two overloads)
+  - [x] Search common paths:
+    - [x] `wwwroot/ssr/ssr.mjs`
+    - [x] `wwwroot/ssr/ssr.js`
+    - [x] `bootstrap/ssr/ssr.mjs`
+    - [x] `bootstrap/ssr/ssr.js`
+    - [x] `public/ssr/ssr.mjs`
+    - [x] `public/ssr/ssr.js`
+    - [x] Custom configured path(s)
+  - [x] Return first found or null
+  - [x] Support for multiple custom paths
+  - [x] Support for absolute and relative paths
+  - [x] 16 comprehensive tests covering all scenarios
 
 ### SSR Integration ✅ (Completed 2025-12-16 via TagHelpers)
 - [x] TagHelpers call SSR gateway when rendering
@@ -407,8 +415,9 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
   - [x] Automatic fallback to CSR on errors
 
 ### SSR Tests ✅ (Completed 2025-12-16)
-- [x] `HttpGatewayTests.cs` (13 tests)
-- [ ] `BundleDetectorTests.cs` (5+ tests) - deferred
+- [x] `HttpGatewayTests.cs` (22 tests - 13 original + 9 health check)
+- [x] `BundleDetectorTests.cs` (16 tests) ✅
+- [x] `SsrExceptionTests.cs` (11 tests) ✅
 - [x] SSR integration tests via TagHelper tests (22 tests)
 
 ---
@@ -711,7 +720,7 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 | Phase 1: Core | 33 | [✅] | 100% (Core infrastructure complete) |
 | Phase 2: Properties | 41 | [✅] | 100% (All property types implemented) |
 | Phase 3: Middleware | 50+ | [✅] | 100% (Core, middleware, property resolution, and view integration complete) |
-| Phase 4: SSR | 18 | [🚧] | 60% (Basic infrastructure complete, health checks and bundle detection deferred) |
+| Phase 4: SSR | 18 | [✅] | 100% (All SSR features complete - gateway, health checks, bundle detection, exceptions) |
 | Phase 5: Testing | 26 | [ ] | 0% |
 | Phase 6: CLI | 8 | [ ] | 0% |
 | Phase 7: Docs | 9+ | [ ] | 0% |
@@ -720,8 +729,8 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 | Phase 10: Maintenance | Ongoing | [ ] | 0% |
 
 **Total Tasks:** 400+  
-**Completed:** ~210 (Phases 1, 2, 3 complete; Phase 4 partially complete)  
-**Overall Progress:** ~52%
+**Completed:** ~228 (Phases 1, 2, 3, 4 complete)  
+**Overall Progress:** ~57%
 
 ---
 
@@ -786,21 +795,29 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [x] SSR gateway integration with TagHelpers
 - [x] Comprehensive test coverage (35 new tests, 119 total for AspNetCore)
 
+#### Phase 4: Server-Side Rendering ✅ (Completed 2025-12-16)
+- [x] IHasHealthCheck interface with IsHealthyAsync() method
+- [x] HttpGateway implements IHasHealthCheck (9 health check tests)
+- [x] SsrException class with diagnostic properties (11 tests)
+- [x] BundleDetector for auto-discovering SSR bundles (16 tests)
+- [x] Comprehensive test coverage (49 total SSR tests - 22 gateway + 11 exception + 16 bundle detector)
+
 ### Next Steps
-1. [ ] Complete remaining Phase 4 items
-   - [ ] Health check endpoint support (IHasHealthCheck)
-   - [ ] Bundle detector for auto-discovering SSR bundles
-   - [ ] SSR exception class
+1. [x] Complete remaining Phase 4 items ✅
+   - [x] Health check endpoint support (IHasHealthCheck)
+   - [x] Bundle detector for auto-discovering SSR bundles
+   - [x] SSR exception class
 2. [ ] Implement Testing infrastructure (Phase 5)
 3. [ ] Create sample projects with TagHelper usage
 
 ### This Quarter
-1. [ ] Complete Phases 1-5
-2. [ ] Start documentation
-3. [ ] Create sample projects
+1. [x] Complete Phases 1-4 ✅
+2. [ ] Complete Phase 5 (Testing infrastructure)
+3. [ ] Start documentation
+4. [ ] Create sample projects
 
 ---
 
 **Last Updated:** 2025-12-16  
-**Tracking Branch:** copilot/implement-view-integration-taghelpers  
+**Tracking Branch:** copilot/complete-phase-4-items  
 **Target Release:** v1.0.0 (Q1 2026)

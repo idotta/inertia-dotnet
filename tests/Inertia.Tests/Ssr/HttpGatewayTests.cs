@@ -403,4 +403,217 @@ public class HttpGatewayTests
             ItExpr.IsAny<HttpRequestMessage>(),
             ItExpr.IsAny<CancellationToken>());
     }
+
+    #region Health Check Tests
+
+    [Fact]
+    public async Task IsHealthyAsync_WithSsrDisabled_ReturnsFalse()
+    {
+        // Arrange
+        _options.Ssr.Enabled = false;
+        var mockHandler = new Mock<HttpMessageHandler>();
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        var result = await gateway.IsHealthyAsync();
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsHealthyAsync_WithSuccessResponse_ReturnsTrue()
+    {
+        // Arrange
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString().EndsWith("/health")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK
+            });
+
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        var result = await gateway.IsHealthyAsync();
+
+        // Assert
+        Assert.True(result);
+    }
+
+    [Fact]
+    public async Task IsHealthyAsync_WithNonSuccessResponse_ReturnsFalse()
+    {
+        // Arrange
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString().EndsWith("/health")),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.ServiceUnavailable
+            });
+
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        var result = await gateway.IsHealthyAsync();
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsHealthyAsync_WithHttpRequestException_ReturnsFalse()
+    {
+        // Arrange
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString().EndsWith("/health")),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new HttpRequestException("Connection refused"));
+
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        var result = await gateway.IsHealthyAsync();
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsHealthyAsync_WithTimeout_ReturnsFalse()
+    {
+        // Arrange
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString().EndsWith("/health")),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new TaskCanceledException("Request timed out"));
+
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        var result = await gateway.IsHealthyAsync();
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsHealthyAsync_WithUnexpectedException_ReturnsFalse()
+    {
+        // Arrange
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString().EndsWith("/health")),
+                ItExpr.IsAny<CancellationToken>())
+            .ThrowsAsync(new InvalidOperationException("Unexpected error"));
+
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        var result = await gateway.IsHealthyAsync();
+
+        // Assert
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsHealthyAsync_CallsCorrectEndpoint()
+    {
+        // Arrange
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString() == "http://localhost:13714/health"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK
+            });
+
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        await gateway.IsHealthyAsync();
+
+        // Assert
+        mockHandler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.Is<HttpRequestMessage>(req =>
+                req.Method == HttpMethod.Get &&
+                req.RequestUri!.ToString() == "http://localhost:13714/health"),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task IsHealthyAsync_TrimsTrailingSlashFromUrl()
+    {
+        // Arrange
+        _options.Ssr.Url = "http://localhost:13714/";
+        var mockHandler = new Mock<HttpMessageHandler>();
+        mockHandler.Protected()
+            .Setup<Task<HttpResponseMessage>>(
+                "SendAsync",
+                ItExpr.Is<HttpRequestMessage>(req =>
+                    req.Method == HttpMethod.Get &&
+                    req.RequestUri!.ToString() == "http://localhost:13714/health"),
+                ItExpr.IsAny<CancellationToken>())
+            .ReturnsAsync(new HttpResponseMessage
+            {
+                StatusCode = HttpStatusCode.OK
+            });
+
+        var factory = CreateMockHttpClientFactory(mockHandler.Object);
+        var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
+
+        // Act
+        var result = await gateway.IsHealthyAsync();
+
+        // Assert
+        Assert.True(result);
+        mockHandler.Protected().Verify(
+            "SendAsync",
+            Times.Once(),
+            ItExpr.Is<HttpRequestMessage>(req =>
+                req.RequestUri!.ToString() == "http://localhost:13714/health"),
+            ItExpr.IsAny<CancellationToken>());
+    }
+
+    #endregion
 }
