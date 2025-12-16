@@ -8,9 +8,10 @@ obj/
 node_modules/
 package-lock.json
 
-# Build output
-wwwroot/js/
-wwwroot/css/
+# Build output - Vite generated
+wwwroot/js/app*.js
+wwwroot/js/app*.js.map
+wwwroot/css/app*.css
 wwwroot/.vite/
 .vite/
 
