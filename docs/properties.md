@@ -349,16 +349,17 @@ public class CustomPaginator : IProvidesScrollMetadata
 
 ## Once Props
 
-Once props are cached on the client and reused across navigations within the same session.
+Once props are cached in the session and reused across navigations, reducing expensive computations and database queries.
 
 ### Usage
 
 ```csharp
 return await _inertia.RenderAsync("Dashboard", new
 {
-    // Loaded once per session
-    countries = Once(() => GetCountries()),
-    timezones = Once(() => GetTimezones()),
+    // Loaded once per session - cached on server
+    countries = new OnceProp(() => GetCountries()),
+    timezones = new OnceProp(() => GetTimezones()),
+    translations = new OnceProp(() => GetTranslations()),
     
     // Loaded on every request
     user = await GetUserAsync()
@@ -369,14 +370,46 @@ return await _inertia.RenderAsync("Dashboard", new
 
 - **Static reference data** - Countries, timezones, currencies
 - **App configuration** - Settings that don't change often
-- **User preferences** - Theme, language, layout preferences
+- **Translations** - i18n strings that don't change per request
+- **User permissions** - Permission sets that change infrequently
 
 ### How It Works
 
-1. First visit: Props are loaded and sent to the client
-2. Subsequent visits: Client sends `X-Inertia-Except-Once-Props: true` header
-3. Server skips once props in response
-4. Client reuses cached values
+1. **First request**: Prop is evaluated and cached in server-side session
+2. **Subsequent requests**: Cached value is retrieved from session (callback is not executed)
+3. **Reset**: Use `X-Inertia-Reset` header to force re-evaluation
+4. **Graceful degradation**: Works even without session configured (just not cached)
+
+### Session Configuration
+
+To enable once prop caching, configure session in your `Program.cs`:
+
+```csharp
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
+
+// ... after app.Build()
+
+app.UseSession();
+app.UseInertia();
+```
+
+### Force Reset
+
+To force re-evaluation of once props, send the `X-Inertia-Reset` header:
+
+```javascript
+// Reset specific props
+router.reload({ headers: { 'X-Inertia-Reset': 'translations,countries' } })
+
+// Reset all once props
+router.reload({ headers: { 'X-Inertia-Reset': 'all' } })
+```
 
 ## Property Providers
 

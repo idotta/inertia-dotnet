@@ -3,6 +3,7 @@ using Inertia.Core.Properties;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Options;
 using System.Collections;
+using System.Text.Json;
 
 namespace Inertia.AspNetCore;
 
@@ -17,6 +18,7 @@ namespace Inertia.AspNetCore;
 /// </summary>
 public class AspNetCoreInertiaResponseFactory : IInertia
 {
+    private const string SessionKeyPrefix = "inertia.once.";
     private readonly InertiaResponseFactory _coreFactory;
     private readonly IHttpContextAccessor _httpContextAccessor;
 
@@ -209,6 +211,7 @@ public class AspNetCoreInertiaResponseFactory : IInertia
         string? parentKey = null)
     {
         var resolved = new Dictionary<string, object?>();
+        var httpContext = request.HttpContext;
 
         foreach (var kvp in props)
         {
@@ -216,8 +219,34 @@ public class AspNetCoreInertiaResponseFactory : IInertia
             var value = kvp.Value;
             var currentKey = parentKey != null ? $"{parentKey}.{key}" : key;
 
-            // Resolve property types
-            value = await ResolvePropertyTypeAsync(value);
+            // Handle once props with session caching
+            if (value is OnceProp onceProp)
+            {
+                // Check if we should reset this prop
+                if (ShouldResetOnceProp(request, currentKey))
+                {
+                    RemoveCachedOnceProp(httpContext, currentKey);
+                }
+
+                // Try to get from cache first
+                if (TryGetCachedOnceProp(httpContext, currentKey, out var cachedValue))
+                {
+                    value = cachedValue;
+                }
+                else
+                {
+                    // Not in cache, resolve it
+                    value = await onceProp.ResolveAsync();
+
+                    // Cache the resolved value
+                    CacheOnceProp(httpContext, currentKey, value);
+                }
+            }
+            else
+            {
+                // Resolve other property types normally
+                value = await ResolvePropertyTypeAsync(value);
+            }
 
             // Resolve IProvidesInertiaProperty
             if (value is IProvidesInertiaProperty<HttpRequest> propertyProvider)
@@ -258,8 +287,9 @@ public class AspNetCoreInertiaResponseFactory : IInertia
     }
 
     /// <summary>
-    /// Resolves a property type (OptionalProp, DeferProp, AlwaysProp, MergeProp, ScrollProp, or OnceProp) 
+    /// Resolves a property type (OptionalProp, DeferProp, AlwaysProp, MergeProp, or ScrollProp) 
     /// by calling its ResolveAsync method.
+    /// Note: OnceProp is handled separately in ResolvePropertyInstancesAsync with session caching.
     /// </summary>
     private async Task<object?> ResolvePropertyTypeAsync(object? value)
     {
@@ -270,7 +300,7 @@ public class AspNetCoreInertiaResponseFactory : IInertia
             AlwaysProp always => await always.ResolveAsync(),
             MergeProp merge => await merge.ResolveAsync(),
             ScrollProp scroll => await scroll.ResolveAsync(),
-            OnceProp once => await once.ResolveAsync(),
+            OnceProp once => await once.ResolveAsync(), // Fallback, should not reach here
             _ => value
         };
     }
@@ -344,5 +374,150 @@ public class AspNetCoreInertiaResponseFactory : IInertia
         }
 
         return partialComponent == component;
+    }
+
+    /// <summary>
+    /// Gets the session key for a once prop.
+    /// </summary>
+    /// <param name="propKey">The property key.</param>
+    /// <returns>The session key.</returns>
+    private string GetSessionKey(string propKey)
+    {
+        return $"{SessionKeyPrefix}{propKey}";
+    }
+
+    /// <summary>
+    /// Checks if a once prop should be reset based on the X-Inertia-Reset header.
+    /// </summary>
+    /// <param name="request">The HTTP request.</param>
+    /// <param name="propKey">The property key.</param>
+    /// <returns>True if the prop should be reset; otherwise, false.</returns>
+    private bool ShouldResetOnceProp(HttpRequest request, string propKey)
+    {
+        var resetProps = request.GetReset();
+
+        // Check if "all" is requested
+        if (resetProps.Contains("all", StringComparer.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Check if this specific prop is requested to be reset
+        return resetProps.Contains(propKey, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Tries to get a cached once prop value from the session.
+    /// </summary>
+    /// <param name="httpContext">The HTTP context.</param>
+    /// <param name="propKey">The property key.</param>
+    /// <param name="value">The cached value, if found.</param>
+    /// <returns>True if the value was found in cache; otherwise, false.</returns>
+    private bool TryGetCachedOnceProp(HttpContext httpContext, string propKey, out object? value)
+    {
+        value = null;
+
+        // Session might not be available if not configured
+        // Check the session feature first to avoid exceptions
+        var sessionFeature = httpContext.Features.Get<Microsoft.AspNetCore.Http.Features.ISessionFeature>();
+        if (sessionFeature?.Session == null)
+        {
+            return false;
+        }
+
+        var sessionKey = GetSessionKey(propKey);
+        var cachedJson = sessionFeature.Session.GetString(sessionKey);
+
+        if (string.IsNullOrEmpty(cachedJson))
+        {
+            return false;
+        }
+
+        try
+        {
+            // Deserialize to JsonElement which preserves the JSON structure
+            using var document = JsonDocument.Parse(cachedJson);
+            value = DeserializeJsonElement(document.RootElement);
+            return true;
+        }
+        catch (JsonException)
+        {
+            // If deserialization fails (e.g., invalid JSON), treat as cache miss
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Deserializes a JsonElement to a .NET object.
+    /// </summary>
+    private object? DeserializeJsonElement(JsonElement element)
+    {
+        return element.ValueKind switch
+        {
+            JsonValueKind.Object => element.EnumerateObject()
+                .ToDictionary(p => p.Name, p => DeserializeJsonElement(p.Value)),
+            JsonValueKind.Array => element.EnumerateArray()
+                .Select(DeserializeJsonElement)
+                .ToArray(),
+            JsonValueKind.String => element.GetString(),
+            JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.Null => null,
+            _ => null
+        };
+    }
+
+    /// <summary>
+    /// Caches a once prop value in the session.
+    /// </summary>
+    /// <param name="httpContext">The HTTP context.</param>
+    /// <param name="propKey">The property key.</param>
+    /// <param name="value">The value to cache.</param>
+    private void CacheOnceProp(HttpContext httpContext, string propKey, object? value)
+    {
+        // Session might not be available if not configured
+        var sessionFeature = httpContext.Features.Get<Microsoft.AspNetCore.Http.Features.ISessionFeature>();
+        if (sessionFeature?.Session == null)
+        {
+            return;
+        }
+
+        var sessionKey = GetSessionKey(propKey);
+
+        try
+        {
+            // Use JsonSerializer.Serialize for both null and non-null values for consistency
+            var json = JsonSerializer.Serialize(value);
+            sessionFeature.Session.SetString(sessionKey, json);
+        }
+        catch (JsonException)
+        {
+            // If serialization fails, don't cache
+            // This is graceful degradation - the prop will still work, just won't be cached
+        }
+        catch (NotSupportedException)
+        {
+            // Some types cannot be serialized (e.g., types with circular references)
+            // This is graceful degradation - the prop will still work, just won't be cached
+        }
+    }
+
+    /// <summary>
+    /// Removes a once prop from the session cache.
+    /// </summary>
+    /// <param name="httpContext">The HTTP context.</param>
+    /// <param name="propKey">The property key.</param>
+    private void RemoveCachedOnceProp(HttpContext httpContext, string propKey)
+    {
+        // Session might not be available if not configured
+        var sessionFeature = httpContext.Features.Get<Microsoft.AspNetCore.Http.Features.ISessionFeature>();
+        if (sessionFeature?.Session == null)
+        {
+            return;
+        }
+
+        var sessionKey = GetSessionKey(propKey);
+        sessionFeature.Session.Remove(sessionKey);
     }
 }

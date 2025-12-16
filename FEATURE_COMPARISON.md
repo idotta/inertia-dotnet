@@ -72,9 +72,9 @@ This document provides a detailed comparison of features between inertia-laravel
 | Prepend merge | ✅ `prepend()` method | 🔄 `Prepend()` | To Migrate | Fluent API |
 | Merge intent header | ✅ `X-Inertia-Infinite-Scroll-Merge-Intent` | 🔄 Same | To Migrate | Header constant |
 | **Once Props** |
-| Create once prop | ✅ `once(fn() => ...)` | 🔄 `Once(() => ...)` | To Migrate | Factory method |
+| Create once prop | ✅ `once(fn() => ...)` | ✅ `new OnceProp(() => ...)` | ✅ Complete | Factory method |
 | Share once prop | ✅ `shareOnce($key, fn())` | 🔄 `ShareOnce(key, () => ...)` | To Migrate | Helper method |
-| Cache across navigations | ✅ Automatic | 🔄 Context tracking | To Migrate | Resolution caching |
+| Cache across navigations | ✅ Automatic | ✅ Session caching | ✅ Complete | Resolution caching |
 | Fresh loads | ✅ `fresh` props | 🔄 Header detection | To Migrate | X-Inertia-Partial-Data |
 | **Deprecated Props** |
 | Lazy prop (deprecated) | ✅ Alias to OptionalProp | 🔄 Optional alias | To Migrate | Backward compat |
