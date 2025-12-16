@@ -45,7 +45,7 @@ public class HttpGatewayTests
         var mockHandler = new Mock<HttpMessageHandler>();
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -87,7 +87,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -117,7 +117,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -148,7 +148,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -185,7 +185,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -209,7 +209,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -233,7 +233,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -248,7 +248,7 @@ public class HttpGatewayTests
     {
         // Arrange
         HttpRequestMessage? capturedRequest = null;
-        
+
         var mockHandler = new Mock<HttpMessageHandler>();
         mockHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
@@ -271,7 +271,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act
@@ -288,14 +288,14 @@ public class HttpGatewayTests
     {
         // Arrange
         string? capturedContent = null;
-        
+
         var mockHandler = new Mock<HttpMessageHandler>();
         mockHandler.Protected()
             .Setup<Task<HttpResponseMessage>>(
                 "SendAsync",
                 ItExpr.IsAny<HttpRequestMessage>(),
                 ItExpr.IsAny<CancellationToken>())
-            .Callback<HttpRequestMessage, CancellationToken>(async (req, ct) => 
+            .Callback<HttpRequestMessage, CancellationToken>(async (req, ct) =>
             {
                 capturedContent = await req.Content!.ReadAsStringAsync(ct);
             })
@@ -314,7 +314,7 @@ public class HttpGatewayTests
 
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?>
         {
             ["component"] = "Users/Index",
@@ -364,7 +364,7 @@ public class HttpGatewayTests
 
             var factory = CreateMockHttpClientFactory(mockHandler.Object);
             var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-            
+
             var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
             // Act
@@ -389,7 +389,7 @@ public class HttpGatewayTests
         var mockHandler = new Mock<HttpMessageHandler>();
         var factory = CreateMockHttpClientFactory(mockHandler.Object);
         var gateway = new HttpGateway(factory, Options.Create(_options), _mockLogger.Object);
-        
+
         var pageData = new Dictionary<string, object?> { ["component"] = "Test" };
 
         // Act

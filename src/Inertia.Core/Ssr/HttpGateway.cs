@@ -41,7 +41,7 @@ public class HttpGateway : IGateway
         try
         {
             var httpClient = _httpClientFactory.CreateClient("InertiaSSR");
-            
+
             // Configure a reasonable timeout
             httpClient.Timeout = TimeSpan.FromSeconds(10);
 
@@ -58,7 +58,7 @@ public class HttpGateway : IGateway
             }
 
             var result = await response.Content.ReadFromJsonAsync<SsrResponseDto>();
-            
+
             if (result?.Head == null || result.Body == null)
             {
                 _logger.LogWarning("SSR server returned invalid response format");

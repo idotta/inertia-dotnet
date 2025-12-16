@@ -42,7 +42,7 @@ public class InertiaHeadTagHelper : TagHelper
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
     {
         // Get the page data from ViewData
-        if (!ViewContext.ViewData.TryGetValue("page", out var pageObj) || 
+        if (!ViewContext.ViewData.TryGetValue("page", out var pageObj) ||
             pageObj is not Dictionary<string, object?> page)
         {
             // No page data - render nothing

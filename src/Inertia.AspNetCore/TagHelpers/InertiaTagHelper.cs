@@ -56,7 +56,7 @@ public class InertiaTagHelper : TagHelper
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
     {
         // Get the page data from ViewData
-        if (!ViewContext.ViewData.TryGetValue("page", out var pageObj) || 
+        if (!ViewContext.ViewData.TryGetValue("page", out var pageObj) ||
             pageObj is not Dictionary<string, object?> page)
         {
             // If no page data, render an empty div
@@ -68,7 +68,7 @@ public class InertiaTagHelper : TagHelper
 
         // Try SSR first if enabled
         var ssrResponse = await TryGetSsrResponseAsync(page);
-        
+
         if (ssrResponse != null)
         {
             // SSR is available - render the SSR body content

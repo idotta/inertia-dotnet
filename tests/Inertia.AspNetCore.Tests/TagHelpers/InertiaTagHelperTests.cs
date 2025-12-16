@@ -65,7 +65,7 @@ public class InertiaTagHelperTests
     {
         var httpContext = new DefaultHttpContext();
         var viewData = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary());
-        
+
         if (pageData != null)
         {
             viewData["page"] = pageData;
@@ -115,13 +115,13 @@ public class InertiaTagHelperTests
         // Assert
         Assert.Equal("div", output.TagName);
         Assert.Equal("app", output.Attributes["id"]?.Value);
-        
+
         var dataPageAttr = output.Attributes["data-page"];
         Assert.NotNull(dataPageAttr);
-        
+
         var json = dataPageAttr.Value as string;
         Assert.NotNull(json);
-        
+
         // Verify it's valid JSON
         var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json!);
         Assert.NotNull(parsed);
@@ -169,7 +169,7 @@ public class InertiaTagHelperTests
 
         // Assert
         Assert.Null(output.TagName); // Tag wrapper should be removed
-        
+
         var content = output.Content.GetContent();
         Assert.Contains("<script data-page=\"app\" type=\"application/json\">", content);
         Assert.Contains("</script>", content);
@@ -335,10 +335,10 @@ public class InertiaTagHelperTests
         // Assert
         var dataPageAttr = output.Attributes["data-page"];
         Assert.NotNull(dataPageAttr);
-        
+
         var json = dataPageAttr.Value as string;
         var parsed = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json!);
-        
+
         Assert.NotNull(parsed);
         var props = parsed!["props"];
         Assert.True(props.TryGetProperty("users", out var users));

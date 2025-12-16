@@ -61,7 +61,7 @@ public class InertiaHeadTagHelperTests
     {
         var httpContext = new DefaultHttpContext();
         var viewData = new ViewDataDictionary(new EmptyModelMetadataProvider(), new ModelStateDictionary());
-        
+
         if (pageData != null)
         {
             viewData["page"] = pageData;
