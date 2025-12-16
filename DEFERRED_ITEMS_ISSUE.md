@@ -12,9 +12,10 @@ During the implementation of Phase 3.3 (Property Resolution Integration), two fe
 Once props should be resolved once and cached in the session across navigations, similar to Laravel's implementation.
 
 **Current Status:**  
+- ✅ **COMPLETED** - Session integration has been implemented
 - The `OnceProp` class exists and the `IOnceable` interface is implemented
 - Property resolution pipeline supports once props
-- Session caching is NOT implemented
+- Session caching is fully implemented with graceful degradation
 
 **Laravel Reference:**
 ```php
@@ -38,6 +39,18 @@ $props = [
 **Estimated Effort:** Medium (requires session integration design)
 
 **Priority:** Medium - Nice to have for optimization but not critical for core functionality
+
+**Implementation Date:** December 2024
+
+**Implementation Summary:**
+- Added session caching logic to `AspNetCoreInertiaResponseFactory.cs`
+- Session is accessed through `ISessionFeature` for safe feature detection
+- Cache keys are scoped with prefix `inertia.once.{propKey}`
+- Supports nested properties with proper key scoping (e.g., `user.permissions`)
+- Implements X-Inertia-Reset header support (both specific props and "all")
+- Graceful degradation when session is not configured (props work but aren't cached)
+- JSON serialization/deserialization for storing complex objects
+- Comprehensive test coverage with 6 integration tests
 
 ---
 
@@ -127,11 +140,12 @@ Core functionality is complete and production-ready without these features.
 **Acceptance Criteria:**
 
 For Once Props Session Caching:
-- [ ] Once props are cached in session after first resolution
-- [ ] Cached values are reused across navigations
-- [ ] X-Inertia-Reset header forces re-resolution
-- [ ] Session keys are properly scoped and managed
-- [ ] Tests verify caching behavior
+- [x] Once props are cached in session after first resolution
+- [x] Cached values are reused across navigations
+- [x] X-Inertia-Reset header forces re-resolution
+- [x] Session keys are properly scoped and managed
+- [x] Tests verify caching behavior
+- [x] Graceful degradation when session is not configured
 
 For Metadata Headers:
 - [ ] Response includes `mergeProps` array
