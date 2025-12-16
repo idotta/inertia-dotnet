@@ -62,6 +62,16 @@ public class InertiaResponse
     public Func<string>? UrlResolver { get; }
 
     /// <summary>
+    /// Gets the list of property keys that should be merged with existing client-side data.
+    /// </summary>
+    public List<string> MergeProps { get; } = new();
+
+    /// <summary>
+    /// Gets the list of property keys that are deferred (loaded after initial render).
+    /// </summary>
+    public List<string> DeferredProps { get; } = new();
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="InertiaResponse"/> class.
     /// </summary>
     /// <param name="component">The name of the frontend component.</param>
@@ -180,8 +190,16 @@ public class InertiaResponse
             page["encryptHistory"] = true;
         }
 
-        // Additional page metadata would be added here in future phases
-        // (mergeProps, deferredProps, scrollProps, onceProps, etc.)
+        // Include metadata about merge and deferred props
+        if (MergeProps.Count > 0)
+        {
+            page["mergeProps"] = MergeProps.ToArray();
+        }
+
+        if (DeferredProps.Count > 0)
+        {
+            page["deferredProps"] = DeferredProps.ToArray();
+        }
 
         return await Task.FromResult(page);
     }

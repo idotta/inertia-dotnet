@@ -242,4 +242,88 @@ public class InertiaResponseTests
         response.ViewData.Should().ContainKey("viewKey");
         response.ViewData.Should().NotContainKey("propKey");
     }
+
+    [Fact]
+    public async Task BuildPageDataAsync_WithMergeProps_ShouldIncludeMergePropsArray()
+    {
+        // Arrange
+        var component = "Users/Index";
+        var props = new Dictionary<string, object?>();
+        var response = new InertiaResponse(component, props);
+        response.MergeProps.Add("stats");
+        response.MergeProps.Add("filters");
+
+        // Act
+        var pageData = await response.BuildPageDataAsync();
+
+        // Assert
+        pageData.Should().ContainKey("mergeProps");
+        var mergeProps = pageData["mergeProps"] as string[];
+        mergeProps.Should().NotBeNull();
+        mergeProps.Should().Contain("stats");
+        mergeProps.Should().Contain("filters");
+    }
+
+    [Fact]
+    public async Task BuildPageDataAsync_WithDeferredProps_ShouldIncludeDeferredPropsArray()
+    {
+        // Arrange
+        var component = "Dashboard";
+        var props = new Dictionary<string, object?>();
+        var response = new InertiaResponse(component, props);
+        response.DeferredProps.Add("analytics");
+        response.DeferredProps.Add("reports");
+
+        // Act
+        var pageData = await response.BuildPageDataAsync();
+
+        // Assert
+        pageData.Should().ContainKey("deferredProps");
+        var deferredProps = pageData["deferredProps"] as string[];
+        deferredProps.Should().NotBeNull();
+        deferredProps.Should().Contain("analytics");
+        deferredProps.Should().Contain("reports");
+    }
+
+    [Fact]
+    public async Task BuildPageDataAsync_WithNoMetadata_ShouldNotIncludeMetadataFields()
+    {
+        // Arrange
+        var component = "Users/Index";
+        var props = new Dictionary<string, object?>();
+        var response = new InertiaResponse(component, props);
+
+        // Act
+        var pageData = await response.BuildPageDataAsync();
+
+        // Assert
+        pageData.Should().NotContainKey("mergeProps");
+        pageData.Should().NotContainKey("deferredProps");
+    }
+
+    [Fact]
+    public async Task ToJsonAsync_WithMergeProps_ShouldSerializeMetadata()
+    {
+        // Arrange
+        var component = "Users/Index";
+        var props = new Dictionary<string, object?> { ["users"] = new[] { "user1" } };
+        var response = new InertiaResponse(component, props, version: "1.0")
+        {
+            Url = "/users"
+        };
+        response.MergeProps.Add("users");
+
+        // Act
+        var json = await response.ToJsonAsync();
+
+        // Assert
+        json.Should().NotBeNullOrEmpty();
+        json.Should().Contain("\"mergeProps\"");
+        json.Should().Contain("\"users\"");
+
+        var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        root.GetProperty("mergeProps").GetArrayLength().Should().Be(1);
+        root.GetProperty("mergeProps")[0].GetString().Should().Be("users");
+    }
 }
