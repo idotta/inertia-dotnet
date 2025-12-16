@@ -237,4 +237,187 @@ public class PropertyResolutionIntegrationTests
             };
         }
     }
+
+    [Fact]
+    public async Task PropertyResolution_WithMergeProp_ShouldIncludeMergePropsMetadata()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddInertia();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Inertia"] = "true";
+
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
+
+        var provider = services.BuildServiceProvider();
+        var inertia = provider.GetRequiredService<IInertia>();
+
+        // Act
+        var response = await inertia.RenderAsync("Dashboard", new Dictionary<string, object?>
+        {
+            ["user"] = new { name = "John" },
+            ["stats"] = new MergeProp(() => new { count = 100 })
+        });
+
+        // Assert
+        response.Props.Should().ContainKey("user");
+        response.Props.Should().ContainKey("stats");
+        response.MergeProps.Should().Contain("stats");
+        response.DeferredProps.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task PropertyResolution_WithDeferProp_ShouldIncludeDeferredPropsMetadata()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddInertia();
+
+        var httpContext = new DefaultHttpContext();
+        // Not an Inertia request (initial load)
+
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
+
+        var provider = services.BuildServiceProvider();
+        var inertia = provider.GetRequiredService<IInertia>();
+
+        // Act
+        var response = await inertia.RenderAsync("Dashboard", new Dictionary<string, object?>
+        {
+            ["user"] = new { name = "John" },
+            ["analytics"] = new DeferProp(() => new { visits = 1000 })
+        });
+
+        // Assert
+        response.Props.Should().ContainKey("user");
+        response.Props.Should().NotContainKey("analytics"); // Excluded on initial load
+        response.DeferredProps.Should().BeEmpty(); // Filtered out since prop was removed
+    }
+
+    [Fact]
+    public async Task PropertyResolution_WithDeferPropOnPartialReload_ShouldIncludeMetadata()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddInertia();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Inertia"] = "true";
+        httpContext.Request.Headers["X-Inertia-Partial-Data"] = "analytics";
+        httpContext.Request.Headers["X-Inertia-Partial-Component"] = "Dashboard";
+
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
+
+        var provider = services.BuildServiceProvider();
+        var inertia = provider.GetRequiredService<IInertia>();
+
+        // Act
+        var response = await inertia.RenderAsync("Dashboard", new Dictionary<string, object?>
+        {
+            ["user"] = new { name = "John" },
+            ["analytics"] = new DeferProp(() => new { visits = 1000 })
+        });
+
+        // Assert
+        response.Props.Should().ContainKey("analytics");
+        response.Props.Should().NotContainKey("user"); // Filtered by partial reload
+        response.DeferredProps.Should().Contain("analytics");
+    }
+
+    [Fact]
+    public async Task PropertyResolution_WithScrollProp_ShouldIncludeMergePropsMetadata()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddInertia();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Inertia"] = "true";
+
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
+
+        var provider = services.BuildServiceProvider();
+        var inertia = provider.GetRequiredService<IInertia>();
+
+        // Act
+        var response = await inertia.RenderAsync("Posts/Index", new Dictionary<string, object?>
+        {
+            ["posts"] = new ScrollProp(() => new { data = new[] { "Post1", "Post2" } })
+        });
+
+        // Assert
+        response.Props.Should().ContainKey("posts");
+        response.MergeProps.Should().Contain("posts");
+        response.DeferredProps.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task PropertyResolution_WithMultipleMetadataTypes_ShouldIncludeAllMetadata()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddInertia();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Inertia"] = "true";
+
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
+
+        var provider = services.BuildServiceProvider();
+        var inertia = provider.GetRequiredService<IInertia>();
+
+        // Act
+        var response = await inertia.RenderAsync("Dashboard", new Dictionary<string, object?>
+        {
+            ["user"] = new { name = "John" },
+            ["stats"] = new MergeProp(() => new { count = 100 }),
+            ["analytics"] = new DeferProp(() => new { visits = 1000 }),
+            ["posts"] = new ScrollProp(() => new[] { "Post1" })
+        });
+
+        // Assert
+        response.Props.Should().ContainKey("user");
+        response.Props.Should().ContainKey("stats");
+        response.Props.Should().NotContainKey("analytics"); // Deferred excluded on initial inertia request
+        response.Props.Should().ContainKey("posts");
+        response.MergeProps.Should().Contain("stats");
+        response.MergeProps.Should().Contain("posts");
+        response.DeferredProps.Should().BeEmpty(); // Analytics was filtered out
+    }
+
+    [Fact]
+    public async Task PropertyResolution_WithNestedMergeProp_ShouldIncludeMetadataWithDotNotation()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddInertia();
+
+        var httpContext = new DefaultHttpContext();
+        httpContext.Request.Headers["X-Inertia"] = "true";
+
+        var httpContextAccessor = new HttpContextAccessor { HttpContext = httpContext };
+        services.AddSingleton<IHttpContextAccessor>(httpContextAccessor);
+
+        var provider = services.BuildServiceProvider();
+        var inertia = provider.GetRequiredService<IInertia>();
+
+        // Act
+        var response = await inertia.RenderAsync("Dashboard", new Dictionary<string, object?>
+        {
+            ["data"] = new Dictionary<string, object?>
+            {
+                ["stats"] = new MergeProp(() => new { count = 100 })
+            }
+        });
+
+        // Assert
+        response.Props.Should().ContainKey("data");
+        response.MergeProps.Should().Contain("data.stats");
+    }
 }

@@ -45,7 +45,7 @@ public class AspNetCoreInertiaResponseFactory : IInertia
         var httpContext = _httpContextAccessor.HttpContext;
         if (httpContext != null)
         {
-            var resolvedProps = await ResolvePropertiesAsync(response.Props, httpContext.Request, component);
+            var (resolvedProps, metadata) = await ResolvePropertiesWithMetadataAsync(response.Props, httpContext.Request, component);
 
             // Update the response props with resolved values
             response.Props.Clear();
@@ -53,6 +53,10 @@ public class AspNetCoreInertiaResponseFactory : IInertia
             {
                 response.Props[kvp.Key] = kvp.Value;
             }
+
+            // Update metadata
+            response.MergeProps.AddRange(metadata.MergeProps);
+            response.DeferredProps.AddRange(metadata.DeferredProps);
         }
 
         return response;
@@ -94,6 +98,48 @@ public class AspNetCoreInertiaResponseFactory : IInertia
 
     /// <inheritdoc/>
     public void ResolveUrlUsing(Func<string>? urlResolver) => _coreFactory.ResolveUrlUsing(urlResolver);
+
+    /// <summary>
+    /// Holds metadata about properties collected during resolution.
+    /// </summary>
+    private class PropertyMetadata
+    {
+        public List<string> MergeProps { get; } = new();
+        public List<string> DeferredProps { get; } = new();
+    }
+
+    /// <summary>
+    /// Resolves properties for the response with metadata tracking.
+    /// </summary>
+    /// <param name="props">The properties to resolve.</param>
+    /// <param name="request">The HTTP request.</param>
+    /// <param name="component">The component being rendered.</param>
+    /// <returns>A tuple containing the resolved properties and metadata.</returns>
+    private async Task<(Dictionary<string, object?>, PropertyMetadata)> ResolvePropertiesWithMetadataAsync(
+        IDictionary<string, object?> props,
+        HttpRequest request,
+        string component)
+    {
+        var result = new Dictionary<string, object?>(props);
+        var metadata = new PropertyMetadata();
+
+        // Step 1: Collect metadata about merge and deferred props before filtering
+        CollectPropertyMetadata(result, metadata);
+
+        // Step 2: Resolve property providers (IProvidesInertiaProperties)
+        result = await ResolveInertiaPropsProvidersAsync(result, request, component);
+
+        // Step 3: Handle partial reloads - filter based on X-Inertia-Partial-Data/Except headers
+        result = ResolvePartialProperties(result, request, component);
+
+        // Step 4: Resolve property instances (callbacks, prop types, providers)
+        result = await ResolvePropertyInstancesAsync(result, request);
+
+        // Step 5: Filter metadata to only include props that are still in the result
+        FilterMetadataByResolvedProps(metadata, result);
+
+        return (result, metadata);
+    }
 
     /// <summary>
     /// Resolves properties for the response, handling partial reloads, callbacks, and property providers.
@@ -519,5 +565,102 @@ public class AspNetCoreInertiaResponseFactory : IInertia
 
         var sessionKey = GetSessionKey(propKey);
         sessionFeature.Session.Remove(sessionKey);
+    }
+
+    /// <summary>
+    /// Collects metadata about properties (merge props, deferred props) recursively.
+    /// </summary>
+    /// <param name="props">The properties to analyze.</param>
+    /// <param name="metadata">The metadata object to populate.</param>
+    /// <param name="parentKey">The parent key for nested properties.</param>
+    private void CollectPropertyMetadata(
+        IDictionary<string, object?> props,
+        PropertyMetadata metadata,
+        string? parentKey = null)
+    {
+        foreach (var kvp in props)
+        {
+            var key = kvp.Key;
+            var value = kvp.Value;
+            var currentKey = parentKey != null ? $"{parentKey}.{key}" : key;
+
+            // Check if this is a merge prop
+            if (value is MergeProp)
+            {
+                metadata.MergeProps.Add(currentKey);
+            }
+
+            // Check if this is a deferred prop
+            if (value is DeferProp)
+            {
+                metadata.DeferredProps.Add(currentKey);
+            }
+
+            // Check if this is a scroll prop (which is also a merge prop)
+            if (value is ScrollProp)
+            {
+                metadata.MergeProps.Add(currentKey);
+            }
+
+            // Recursively check nested dictionaries
+            if (value is Dictionary<string, object?> nestedDict)
+            {
+                CollectPropertyMetadata(nestedDict, metadata, currentKey);
+            }
+            else if (value is IDictionary<string, object?> nestedIDict && value is not string)
+            {
+                var dictCopy = new Dictionary<string, object?>(nestedIDict);
+                CollectPropertyMetadata(dictCopy, metadata, currentKey);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Filters metadata to only include properties that are in the resolved props.
+    /// </summary>
+    /// <param name="metadata">The metadata to filter.</param>
+    /// <param name="resolvedProps">The resolved properties.</param>
+    private void FilterMetadataByResolvedProps(PropertyMetadata metadata, Dictionary<string, object?> resolvedProps)
+    {
+        // Get all resolved prop keys (including nested keys)
+        var resolvedKeys = GetAllPropertyKeys(resolvedProps);
+
+        // Filter merge props
+        metadata.MergeProps.RemoveAll(key => !resolvedKeys.Contains(key));
+
+        // Filter deferred props
+        metadata.DeferredProps.RemoveAll(key => !resolvedKeys.Contains(key));
+    }
+
+    /// <summary>
+    /// Gets all property keys from a dictionary, including nested keys with dot notation.
+    /// </summary>
+    /// <param name="props">The properties.</param>
+    /// <param name="parentKey">The parent key for nested properties.</param>
+    /// <returns>A set of all property keys.</returns>
+    private HashSet<string> GetAllPropertyKeys(Dictionary<string, object?> props, string? parentKey = null)
+    {
+        var keys = new HashSet<string>();
+
+        foreach (var kvp in props)
+        {
+            var key = kvp.Key;
+            var value = kvp.Value;
+            var currentKey = parentKey != null ? $"{parentKey}.{key}" : key;
+
+            keys.Add(currentKey);
+
+            // Recursively get nested keys
+            if (value is Dictionary<string, object?> nestedDict)
+            {
+                var nestedKeys = GetAllPropertyKeys(nestedDict, currentKey);
+                foreach (var nestedKey in nestedKeys)
+                {
+                    keys.Add(nestedKey);
+                }
+            }
+        }
+
+        return keys;
     }
 }
