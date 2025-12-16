@@ -8,7 +8,7 @@ namespace Inertia.Core.Ssr;
 /// <summary>
 /// HTTP-based gateway for server-side rendering.
 /// </summary>
-public class HttpGateway : IGateway
+public class HttpGateway : IGateway, IHasHealthCheck
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly InertiaOptions _options;
@@ -83,6 +83,43 @@ public class HttpGateway : IGateway
         {
             _logger.LogError(ex, "Unexpected error during SSR dispatch");
             return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task<bool> IsHealthyAsync()
+    {
+        if (!_options.Ssr.Enabled)
+        {
+            return false;
+        }
+
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient("InertiaSSR");
+
+            // Configure a short timeout for health checks
+            httpClient.Timeout = TimeSpan.FromSeconds(5);
+
+            var response = await httpClient.GetAsync(
+                $"{_options.Ssr.Url.TrimEnd('/')}/health");
+
+            return response.IsSuccessStatusCode;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogDebug(ex, "SSR health check failed: unable to connect to {Url}", _options.Ssr.Url);
+            return false;
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogDebug(ex, "SSR health check timed out");
+            return false;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Unexpected error during SSR health check");
+            return false;
         }
     }
 
