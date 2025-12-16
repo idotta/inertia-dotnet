@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllersWithViews();
 
 // Configure Inertia
-builder.Services.AddInertia(options =>
+builder.Services.AddInertia<InertiaMinimal.Middleware.HandleInertiaRequests>(options =>
 {
     options.RootView = "app";
 });

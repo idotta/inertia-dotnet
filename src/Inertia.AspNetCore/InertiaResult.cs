@@ -2,6 +2,8 @@ using Inertia.Core;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using System.Text;
 using System.Text.Json;
 
@@ -53,12 +55,34 @@ public class InertiaResult : IActionResult
         else
         {
             // Return HTML for initial page loads
-            // This requires a view engine, which we'll implement in a future phase
-            // For now, we'll just throw an exception with a helpful message
-            throw new InvalidOperationException(
-                "HTML rendering for initial page loads requires view integration. " +
-                "This will be implemented in Phase 3.2. For now, ensure all requests " +
-                "include the X-Inertia header.");
+            // Prepare the page data for the view
+            var pageData = new Dictionary<string, object?>
+            {
+                ["component"] = _response.Component,
+                ["props"] = _response.Props,
+                ["url"] = _response.Url,
+                ["version"] = _response.Version
+            };
+
+            // Create a ViewResult to render the root view
+            var viewResult = new ViewResult
+            {
+                ViewName = _response.RootView,
+                ViewData = new Microsoft.AspNetCore.Mvc.ViewFeatures.ViewDataDictionary(
+                    new Microsoft.AspNetCore.Mvc.ModelBinding.EmptyModelMetadataProvider(),
+                    context.ModelState)
+                {
+                    ["page"] = pageData
+                }
+            };
+
+            // Copy any additional view data from the response
+            foreach (var kvp in _response.ViewData)
+            {
+                viewResult.ViewData[kvp.Key] = kvp.Value;
+            }
+
+            await viewResult.ExecuteResultAsync(context);
         }
     }
 }

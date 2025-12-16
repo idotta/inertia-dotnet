@@ -15,7 +15,7 @@ builder.Services.AddSession(options =>
 });
 
 // Configure Inertia
-builder.Services.AddInertia(options =>
+builder.Services.AddInertia<InertiaReact.Middleware.HandleInertiaRequests>(options =>
 {
     options.RootView = "app";
 });
