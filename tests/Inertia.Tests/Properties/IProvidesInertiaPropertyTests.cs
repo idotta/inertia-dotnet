@@ -1,4 +1,5 @@
 using FluentAssertions;
+using Inertia.Core;
 using Inertia.Core.Properties;
 
 namespace Inertia.Tests.Properties;
@@ -9,41 +10,32 @@ namespace Inertia.Tests.Properties;
 public class IProvidesInertiaPropertyTests
 {
     [Fact]
-    public void IProvidesInertiaProperty_ShouldHaveGetKeyMethod()
+    public void IProvidesInertiaProperty_ShouldHaveToInertiaPropertyMethod()
     {
         // Arrange & Act
-        var methods = typeof(IProvidesInertiaProperty).GetMethods();
+        var methods = typeof(IProvidesInertiaProperty<object>).GetMethods();
 
         // Assert
-        methods.Should().Contain(m => m.Name == nameof(IProvidesInertiaProperty.GetKey));
+        methods.Should().Contain(m => m.Name == nameof(IProvidesInertiaProperty<object>.ToInertiaProperty));
     }
 
     [Fact]
-    public void IProvidesInertiaProperty_ShouldHaveGetValueMethod()
+    public void IProvidesInertiaProperty_ToInertiaProperty_ShouldAcceptContextParameter()
     {
         // Arrange & Act
-        var methods = typeof(IProvidesInertiaProperty).GetMethods();
-
-        // Assert
-        methods.Should().Contain(m => m.Name == nameof(IProvidesInertiaProperty.GetValue));
-    }
-
-    [Fact]
-    public void IProvidesInertiaProperty_GetKey_ShouldReturnString()
-    {
-        // Arrange & Act
-        var method = typeof(IProvidesInertiaProperty).GetMethod(nameof(IProvidesInertiaProperty.GetKey));
+        var method = typeof(IProvidesInertiaProperty<object>).GetMethod(nameof(IProvidesInertiaProperty<object>.ToInertiaProperty));
 
         // Assert
         method.Should().NotBeNull();
-        method!.ReturnType.Should().Be(typeof(string));
+        method!.GetParameters().Should().HaveCount(1);
+        method.GetParameters()[0].ParameterType.Should().Be(typeof(PropertyContext<object>));
     }
 
     [Fact]
-    public void IProvidesInertiaProperty_GetValue_ShouldReturnNullableObject()
+    public void IProvidesInertiaProperty_ToInertiaProperty_ShouldReturnNullableObject()
     {
         // Arrange & Act
-        var method = typeof(IProvidesInertiaProperty).GetMethod(nameof(IProvidesInertiaProperty.GetValue));
+        var method = typeof(IProvidesInertiaProperty<object>).GetMethod(nameof(IProvidesInertiaProperty<object>.ToInertiaProperty));
 
         // Assert
         method.Should().NotBeNull();
@@ -51,17 +43,16 @@ public class IProvidesInertiaPropertyTests
     }
 
     [Fact]
-    public void IProvidesInertiaProperty_Implementation_CanProvideKeyAndValue()
+    public void IProvidesInertiaProperty_Implementation_CanProvideValue()
     {
         // Arrange
         var implementor = new TestPropertyProvider();
+        var context = new PropertyContext<object>("test", new Dictionary<string, object?>(), new object());
 
         // Act
-        var key = implementor.GetKey();
-        var value = implementor.GetValue();
+        var value = implementor.ToInertiaProperty(context);
 
         // Assert
-        key.Should().Be("testKey");
         value.Should().Be("testValue");
     }
 
@@ -70,13 +61,12 @@ public class IProvidesInertiaPropertyTests
     {
         // Arrange
         var implementor = new TestPropertyProviderWithNull();
+        var context = new PropertyContext<object>("test", new Dictionary<string, object?>(), new object());
 
         // Act
-        var key = implementor.GetKey();
-        var value = implementor.GetValue();
+        var value = implementor.ToInertiaProperty(context);
 
         // Assert
-        key.Should().Be("nullProperty");
         value.Should().BeNull();
     }
 
@@ -84,30 +74,30 @@ public class IProvidesInertiaPropertyTests
     public void IProvidesInertiaProperty_Implementation_CanReturnDifferentTypes()
     {
         // Arrange
+        var context = new PropertyContext<object>("test", new Dictionary<string, object?>(), new object());
         var stringProvider = new TestPropertyProviderString();
         var numberProvider = new TestPropertyProviderNumber();
         var boolProvider = new TestPropertyProviderBool();
         var arrayProvider = new TestPropertyProviderArray();
 
         // Act & Assert
-        stringProvider.GetValue().Should().BeOfType<string>();
-        numberProvider.GetValue().Should().BeOfType<int>();
-        boolProvider.GetValue().Should().BeOfType<bool>();
-        arrayProvider.GetValue().Should().BeOfType<int[]>();
+        stringProvider.ToInertiaProperty(context).Should().BeOfType<string>();
+        numberProvider.ToInertiaProperty(context).Should().BeOfType<int>();
+        boolProvider.ToInertiaProperty(context).Should().BeOfType<bool>();
+        arrayProvider.ToInertiaProperty(context).Should().BeOfType<int[]>();
     }
 
     [Fact]
     public void IProvidesInertiaProperty_Implementation_RealWorldExample_CurrentDate()
     {
         // Arrange
+        var context = new PropertyContext<object>("test", new Dictionary<string, object?>(), new object());
         var implementor = new CurrentDateProvider();
 
         // Act
-        var key = implementor.GetKey();
-        var value = implementor.GetValue();
+        var value = implementor.ToInertiaProperty(context);
 
         // Assert
-        key.Should().Be("currentDate");
         value.Should().NotBeNull();
         value.Should().BeOfType<string>();
     }
@@ -116,61 +106,53 @@ public class IProvidesInertiaPropertyTests
     public void IProvidesInertiaProperty_Implementation_RealWorldExample_AppVersion()
     {
         // Arrange
+        var context = new PropertyContext<object>("test", new Dictionary<string, object?>(), new object());
         var implementor = new AppVersionProvider("1.2.3");
 
         // Act
-        var key = implementor.GetKey();
-        var value = implementor.GetValue();
+        var value = implementor.ToInertiaProperty(context);
 
         // Assert
-        key.Should().Be("appVersion");
         value.Should().Be("1.2.3");
     }
 
     // Test implementations
-    private class TestPropertyProvider : IProvidesInertiaProperty
+    private class TestPropertyProvider : IProvidesInertiaProperty<object>
     {
-        public string GetKey() => "testKey";
-        public object? GetValue() => "testValue";
+        public object? ToInertiaProperty(PropertyContext<object> context) => "testValue";
     }
 
-    private class TestPropertyProviderWithNull : IProvidesInertiaProperty
+    private class TestPropertyProviderWithNull : IProvidesInertiaProperty<object>
     {
-        public string GetKey() => "nullProperty";
-        public object? GetValue() => null;
+        public object? ToInertiaProperty(PropertyContext<object> context) => null;
     }
 
-    private class TestPropertyProviderString : IProvidesInertiaProperty
+    private class TestPropertyProviderString : IProvidesInertiaProperty<object>
     {
-        public string GetKey() => "stringProp";
-        public object? GetValue() => "hello";
+        public object? ToInertiaProperty(PropertyContext<object> context) => "hello";
     }
 
-    private class TestPropertyProviderNumber : IProvidesInertiaProperty
+    private class TestPropertyProviderNumber : IProvidesInertiaProperty<object>
     {
-        public string GetKey() => "numberProp";
-        public object? GetValue() => 42;
+        public object? ToInertiaProperty(PropertyContext<object> context) => 42;
     }
 
-    private class TestPropertyProviderBool : IProvidesInertiaProperty
+    private class TestPropertyProviderBool : IProvidesInertiaProperty<object>
     {
-        public string GetKey() => "boolProp";
-        public object? GetValue() => true;
+        public object? ToInertiaProperty(PropertyContext<object> context) => true;
     }
 
-    private class TestPropertyProviderArray : IProvidesInertiaProperty
+    private class TestPropertyProviderArray : IProvidesInertiaProperty<object>
     {
-        public string GetKey() => "arrayProp";
-        public object? GetValue() => new[] { 1, 2, 3 };
+        public object? ToInertiaProperty(PropertyContext<object> context) => new[] { 1, 2, 3 };
     }
 
-    private class CurrentDateProvider : IProvidesInertiaProperty
+    private class CurrentDateProvider : IProvidesInertiaProperty<object>
     {
-        public string GetKey() => "currentDate";
-        public object? GetValue() => DateTime.Now.ToString("yyyy-MM-dd");
+        public object? ToInertiaProperty(PropertyContext<object> context) => DateTime.Now.ToString("yyyy-MM-dd");
     }
 
-    private class AppVersionProvider : IProvidesInertiaProperty
+    private class AppVersionProvider : IProvidesInertiaProperty<object>
     {
         private readonly string _version;
 
@@ -179,7 +161,6 @@ public class IProvidesInertiaPropertyTests
             _version = version;
         }
 
-        public string GetKey() => "appVersion";
-        public object? GetValue() => _version;
+        public object? ToInertiaProperty(PropertyContext<object> context) => _version;
     }
 }

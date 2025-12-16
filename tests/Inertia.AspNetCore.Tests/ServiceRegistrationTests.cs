@@ -25,7 +25,8 @@ public class ServiceRegistrationTests
         // Assert
         var inertia = provider.GetService<IInertia>();
         inertia.Should().NotBeNull();
-        inertia.Should().BeOfType<InertiaResponseFactory>();
+        // Should use AspNetCoreInertiaResponseFactory for HTTP-aware property resolution
+        inertia.Should().BeOfType<AspNetCoreInertiaResponseFactory>();
     }
 
     [Fact]
