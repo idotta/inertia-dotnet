@@ -774,12 +774,12 @@ public async Task ItRendersInertiaResponse()
 | Phase 2: Props | 1 week | All property types implemented | ✅ Complete |
 | Phase 3: Middleware | 1 week | Middleware working end-to-end | ✅ Complete |
 | Phase 4: SSR | 1 week | SSR integration complete | ✅ Complete |
-| Phase 5: Testing | 1 week | Testing utilities ready | ⏸️ Not Started |
-| Phase 6: CLI | 1 week | CLI tools (if needed) |
-| Phase 7: Advanced | 1 week | All features complete |
-| Phase 8: Docs | 1 week | Documentation complete |
-| Phase 9: Testing | 1 week | Test suite complete |
-| Phase 10: Release | 2 weeks | v1.0.0 ready for release |
+| Phase 5: Testing | 1 week | Testing utilities ready | ✅ Complete |
+| Phase 6: CLI | 1 week | CLI tools (if needed) | ⏸️ Optional |
+| Phase 7: Docs | 1 week | Core documentation complete | ✅ Complete |
+| Phase 8: Examples | 1 week | Sample projects and API docs | 🚧 In Progress |
+| Phase 9: QA | 1 week | Quality assurance complete | ⏸️ Not Started |
+| Phase 10: Release | 2 weeks | v1.0.0 ready for release | ⏸️ Not Started |
 
 ## Resource Requirements
 
