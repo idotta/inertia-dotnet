@@ -1,4 +1,5 @@
 using Inertia.Core;
+using Inertia.Core.Ssr;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -34,6 +35,12 @@ public static class InertiaServiceCollectionExtensions
 
         // Register HttpContextAccessor (required for property resolution)
         services.AddHttpContextAccessor();
+
+        // Register HTTP client for SSR
+        services.AddHttpClient("InertiaSSR");
+
+        // Register SSR gateway (optional - will be null if not explicitly registered)
+        services.TryAddSingleton<IGateway, HttpGateway>();
 
         // Register IInertia as scoped (per-request)
         // Use AspNetCoreInertiaResponseFactory for HTTP-aware property resolution
