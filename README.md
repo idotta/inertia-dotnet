@@ -4,7 +4,7 @@
 [![Build Status](https://github.com/idotta/inertia-dotnet/workflows/Build/badge.svg)](https://github.com/idotta/inertia-dotnet/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-The official .NET adapter for [Inertia.js](https://inertiajs.com/). Build modern single-page applications using classic server-side routing and controllers.
+A .NET adapter for [Inertia.js](https://inertiajs.com/). Build modern single-page applications using classic server-side routing and controllers.
 
 > **Note:** This project is currently in active development (Phase 5 complete - Testing Infrastructure). See [Migration Status](#migration-status) for details.
 
