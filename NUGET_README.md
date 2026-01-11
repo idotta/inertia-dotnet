@@ -1,6 +1,6 @@
 # Inertia.js .NET Adapter
 
-The official .NET adapter for [Inertia.js](https://inertiajs.com), enabling you to build modern single-page applications using classic server-side routing with ASP.NET Core.
+A .NET adapter for [Inertia.js](https://inertiajs.com), enabling you to build modern single-page applications using classic server-side routing with ASP.NET Core.
 
 ## Features
 
