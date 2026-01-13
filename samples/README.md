@@ -1,40 +1,68 @@
 # Inertia.js .NET Samples
 
-This directory will contain sample applications demonstrating how to use inertia-dotnet with different frontend frameworks.
+This directory contains sample applications demonstrating how to use inertia-dotnet with React.
+
+## Available Samples
+
+### [InertiaMinimal](InertiaMinimal/) ✅
+A minimal ASP.NET Core application with a single Inertia response.
+
+**Features:**
+- Basic Inertia.js setup
+- Single page component
+- React frontend with Vite
+- Simple styling
+- Ideal starting point for new projects
+
+**Quick Start:**
+```bash
+cd InertiaMinimal
+npm install && npm run build
+dotnet run
+```
+
+### [InertiaReact](InertiaReact/) ✅
+A comprehensive React example demonstrating advanced Inertia.js features.
+
+**Features:**
+- Multiple pages with navigation
+- Shared layouts
+- Complete CRUD operations
+- Forms and validation
+- Partial reloads
+- Property types (OptionalProp, AlwaysProp)
+- Flash messages
+- In-memory data service
+
+**Quick Start:**
+```bash
+cd InertiaReact
+npm install && npm run build
+dotnet run
+```
 
 ## Planned Samples
 
-### InertiaMinimal (Coming in Phase 7)
-A minimal ASP.NET Core application with a single Inertia response, demonstrating:
-- Basic setup
-- Configuration
-- First Inertia response
-- React frontend
-
-### InertiaReact (Coming in Phase 7)
-A full React example application demonstrating:
-- Multiple pages
-- Shared layouts
-- Forms and validation
-- Partial reloads
-- Property types
-- Error handling
-
-### InertiaVue (Coming in Phase 7)
+### InertiaVue (Coming Soon)
 A full Vue 3 example application with similar features to the React example.
 
-### InertiaSsr (Coming in Phase 7)
+### InertiaSsr (Coming Soon)
 An SSR-enabled example demonstrating:
 - SSR configuration
 - Node.js SSR server
 - Server-side rendering in action
 - Fallback to CSR
 
-## Current Status
+## Learning Path
 
-Samples will be added in Phase 7 of the migration plan once the core functionality is complete.
+1. **Start with InertiaMinimal** - Understand the basics
+2. **Explore InertiaReact** - Learn advanced features
+3. **Read the Documentation** - Dive deeper into specific topics
 
-For now, refer to:
-- [API_MAPPING.md](../API_MAPPING.md) for code examples
-- [MIGRATION_PLAN.md](../MIGRATION_PLAN.md) for implementation details
-- [README.md](../README.md) for quick start guide
+## Additional Resources
+
+- [Getting Started Guide](../docs/getting-started.md)
+- [Properties Documentation](../docs/properties.md)
+- [Middleware Documentation](../docs/middleware.md)
+- [Testing Guide](../docs/testing.md)
+- [API Reference](../README.md)

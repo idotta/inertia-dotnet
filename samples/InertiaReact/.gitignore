@@ -1,0 +1,23 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+
+# Node.js
+node_modules/
+package-lock.json
+
+# Build output - Vite generated
+wwwroot/js/app*.js
+wwwroot/js/app*.js.map
+wwwroot/css/app*.css
+wwwroot/.vite/
+.vite/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+*.swo

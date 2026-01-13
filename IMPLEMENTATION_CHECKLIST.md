@@ -605,17 +605,21 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 - [ ] Publish API docs (GitHub Pages or similar)
 
 ### Sample Projects
-- [ ] Create `samples/InertiaMinimal/`
-  - [ ] Minimal ASP.NET Core app
-  - [ ] Single Inertia response
-  - [ ] React frontend
+- [x] Create `samples/InertiaMinimal/` ✅ (Completed 2025-12-16)
+  - [x] Minimal ASP.NET Core app
+  - [x] Single Inertia response
+  - [x] React frontend
+  - [x] Basic styling and documentation
   
-- [ ] Create `samples/InertiaReact/`
-  - [ ] Full React example
-  - [ ] Multiple pages
-  - [ ] Shared layout
-  - [ ] Forms and validation
-  - [ ] Partial reloads
+- [x] Create `samples/InertiaReact/` ✅ (Completed 2025-12-16)
+  - [x] Full React example
+  - [x] Multiple pages with navigation
+  - [x] Shared layout component
+  - [x] Forms and validation (CRUD operations)
+  - [x] Partial reloads (Optional props demo)
+  - [x] Property types (OptionalProp, AlwaysProp)
+  - [x] Flash messages
+  - [x] Comprehensive documentation
   
 - [ ] Create `samples/InertiaVue/`
   - [ ] Full Vue 3 example
@@ -742,14 +746,14 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
 | Phase 4: SSR | 18 | [✅] | 100% (All SSR features complete - gateway, health checks, bundle detection, exceptions) |
 | Phase 5: Testing | 26 | [✅] | 100% (Core testing infrastructure - AssertableInertia, TestResponseExtensions, ReloadRequest) |
 | Phase 6: CLI | 8 | [ ] | 0% (Optional - can be deferred) |
-| Phase 7: Docs | 15 | [✅] | 100% (Core documentation complete - 8 comprehensive guides) |
-| Phase 8: QA | 15+ | [ ] | 0% (API docs and samples remaining) |
+| Phase 7: Docs | 15 | [✅] | 100% (Core documentation and samples complete - 8 guides + 2 samples) |
+| Phase 8: QA | 15+ | [ ] | 13% (2 samples complete, API docs remaining) |
 | Phase 9: Release | 10+ | [ ] | 0% |
 | Phase 10: Maintenance | Ongoing | [ ] | 0% |
 
 **Total Tasks:** 400+  
-**Completed:** ~269 (Phases 1-5 and 7 core docs complete)  
-**Overall Progress:** ~67%
+**Completed:** ~278 (Phases 1-5, 7 complete, samples added)  
+**Overall Progress:** ~70%
 
 ---
 
@@ -854,18 +858,22 @@ This is a detailed, actionable checklist for implementing inertia-dotnet based o
    - [x] SSR setup guide
    - [x] Testing guide
    - [x] Laravel migration guide
-4. [ ] Add API documentation (XML comments)
-5. [ ] Create sample projects
+4. [x] Create sample projects ✅
+   - [x] InertiaMinimal - basic example
+   - [x] InertiaReact - comprehensive example
+5. [ ] Add API documentation (XML comments)
 6. [ ] CLI tools (Phase 6) - Optional
+7. [ ] Additional samples (Vue, SSR) - Optional
 
 ### This Quarter
 1. [x] Complete Phases 1-5 ✅
 2. [x] Complete core documentation ✅
-3. [ ] Add API documentation and samples
-4. [ ] Prepare for v1.0.0 release
+3. [x] Create initial sample projects ✅
+4. [ ] Add API documentation
+5. [ ] Prepare for v1.0.0 release
 
 ---
 
 **Last Updated:** 2025-12-16  
-**Tracking Branch:** copilot/start-documentation-phase-7  
+**Tracking Branch:** copilot/create-inertiaminimal-and-inertreact-samples  
 **Target Release:** v1.0.0 (Q1 2026)
