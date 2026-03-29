@@ -1,0 +1,15 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/src/">
+    <Project Path="src/Inertia.AspNetCore/Inertia.AspNetCore.csproj" />
+    <Project Path="src/Inertia.Testing/Inertia.Testing.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Inertia.Testing.Tests/Inertia.Testing.Tests.csproj" />
+    <Project Path="tests/Inertia.Tests/Inertia.Tests.csproj" />
+  </Folder>
+</Solution>
