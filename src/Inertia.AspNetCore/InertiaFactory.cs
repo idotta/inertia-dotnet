@@ -14,6 +14,7 @@ internal sealed class InertiaFactory : IInertia
     private readonly InertiaOptions _options;
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ITempDataDictionaryFactory _tempDataFactory;
+    private readonly SsrState? _ssrState;
     private readonly Dictionary<string, object?> _sharedProps = [];
     private readonly List<IInertiaPropertyProvider> _sharedProviders = [];
     private string? _version;
@@ -25,11 +26,13 @@ internal sealed class InertiaFactory : IInertia
     public InertiaFactory(
         IOptions<InertiaOptions> options,
         IHttpContextAccessor httpContextAccessor,
-        ITempDataDictionaryFactory tempDataFactory)
+        ITempDataDictionaryFactory tempDataFactory,
+        SsrState? ssrState = null)
     {
         _options = options.Value;
         _httpContextAccessor = httpContextAccessor;
         _tempDataFactory = tempDataFactory;
+        _ssrState = ssrState;
     }
 
     /// <inheritdoc />
@@ -122,6 +125,9 @@ internal sealed class InertiaFactory : IInertia
 
     /// <inheritdoc />
     public void EncryptHistory(bool encrypt = true) => _encryptHistory = encrypt;
+
+    /// <inheritdoc />
+    public void WithoutSsr(params string[] paths) => _ssrState?.ExcludePaths(paths);
 
     // -- Internal methods for middleware --
 

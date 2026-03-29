@@ -435,13 +435,21 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Flash data reflashing on redirects and version mismatches via TempData
 - Version check happens BEFORE `next()` (eagerly evaluated, avoids response buffering)
 
-### Phase 6: SSR
+### Phase 6: SSR ✅
 
-**Files:** `ISsrGateway.cs`, `HttpSsrGateway.cs`, `SsrResponse.cs`, `SsrState.cs`, `SsrBundleDetector.cs`, `SsrErrorType.cs`
-
-- `IHttpClientFactory` with `AddStandardResilienceHandler()`
-- `SsrState` (scoped) holds per-request path exclusions + dispatch cache
-- Gateway returns `SsrResponse?` (nullable on failure, logged via `ILogger`)
+- 7 source files + 6 test files (41 new tests, cumulative 506)
+- `ISsrGateway` interface with `DispatchAsync` (returns `SsrResponse?`) and `IsHealthyAsync`
+- `HttpSsrGateway` (internal sealed, Singleton) — `IHttpClientFactory` named client, POSTs page JSON to SSR server, parses `{head: string[], body: string}` response, structured `ILogger` warnings on failure, `SsrException` when `SsrThrowOnError` enabled
+- `SsrResponse` sealed record (`Head`, `Body`)
+- `SsrState` (internal sealed, Scoped) — per-request dispatch cache (gateway called once), path exclusions with exact/wildcard matching
+- `SsrBundleDetector` (internal sealed, Singleton) — checks custom `SsrBundle` path then default `wwwroot/js/` paths, testable via internal `Func<string, bool>` constructor
+- `SsrErrorType` enum + `SsrErrorTypeParser` — maps wire strings (`"browser-api"`, `"connection"`, etc.) to enum values
+- `SsrException` — `Component`, `ErrorType`, `Hint`, `SourceLocation` properties, `Create()` factory
+- `IInertia.WithoutSsr(params string[] paths)` — delegates to scoped `SsrState.ExcludePaths()`
+- `InertiaFactory` adds nullable `SsrState?` constructor parameter (non-breaking for existing tests)
+- `InertiaResponse.Execute()` stores page on `SsrState` for Tag Helper dispatch (Phase 7)
+- Path exclusions on `SsrState` (scoped), not the Singleton gateway — per-request isolation
+- No Vite hot module, no Laravel events — `ILogger` for error reporting
 
 ### Phase 7: DI Registration + Tag Helpers
 

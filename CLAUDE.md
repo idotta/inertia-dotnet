@@ -83,7 +83,8 @@ The project follows a phased plan (see `.docs/PLAN.md`). Current status:
 - **Phase 3** (response factory + response) — complete
 - **Phase 4** (PropsResolver) — in progress
 - **Phase 5** (middleware + validation pipeline) — complete
-- **Phase 6+** (SSR, DI registration, Tag Helpers, testing package) — not started
+- **Phase 6** (SSR) — complete
+- **Phase 7+** (DI registration, Tag Helpers, testing package) — not started
 
 Subsequent phases build incrementally — check the plan for current status before starting work.
 

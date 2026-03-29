@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Inertia.AspNetCore;
 
@@ -106,6 +107,10 @@ public sealed class InertiaResponse : IActionResult, IResult
             // Initial page load -- store page in HttpContext.Items for Tag Helpers
             httpContext.Items["InertiaPage"] = page;
             httpContext.Items["InertiaPageJson"] = page.ToJson(_jsonOptions);
+
+            // Store page on SsrState for SSR dispatch (Phase 7 Tag Helpers call DispatchAsync)
+            if (httpContext.RequestServices?.GetService<SsrState>() is { } ssrState)
+                ssrState.SetPage(page);
 
             httpContext.Response.StatusCode = StatusCodes.Status200OK;
             httpContext.Response.ContentType = "text/html; charset=utf-8";

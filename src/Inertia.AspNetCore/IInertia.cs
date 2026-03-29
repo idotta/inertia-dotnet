@@ -53,4 +53,8 @@ public interface IInertia
     /// <summary>Sets whether the browser history state should be encrypted.</summary>
     /// <param name="encrypt">True to encrypt, false to disable encryption.</param>
     void EncryptHistory(bool encrypt = true);
+
+    /// <summary>Excludes the given paths from server-side rendering for this request.</summary>
+    /// <param name="paths">Paths to exclude. Supports exact match and trailing wildcard (e.g., "/api/*").</param>
+    void WithoutSsr(params string[] paths);
 }
