@@ -22,6 +22,7 @@ This plan incorporates findings from four specialist reviews (C# architecture, A
 ### 1. ErrorOr — DO NOT USE
 
 ErrorOr is for **application code**, not libraries. Adding it creates a transitive dependency every consumer inherits. The PHP source uses exceptions for programmer errors and nullable returns for optional results. We follow the same:
+
 - `SsrResponse?` for SSR gateway (nullable = failure, logged via `ILogger`)
 - `ComponentNotFoundException` for invalid component names
 - `ArgumentException` / `InvalidOperationException` for misconfiguration
@@ -34,6 +35,7 @@ The test project already has FluentAssertions 8.9.0. Version 8.x has clean Apach
 ### 3. Prop Factory — Static `Prop` Class (not on IInertia)
 
 Extract prop factory methods from `IInertia` to a static `Prop` class:
+
 - Removes 7+ methods from the interface
 - Enables prop creation without DI injection
 - Follows .NET conventions (`TimeSpan.FromSeconds()`, `Task.FromResult()`)
@@ -86,6 +88,7 @@ builder.Services.AddInertia(options =>
 ### 8. TypedResults Usage
 
 `TypedResults` (per dotnet-recommended) applies to standard HTTP responses, not to our custom result types:
+
 - `InertiaResponse` / `InertiaLocationResult` — custom `IResult + IActionResult`, writes directly to `HttpContext.Response`. Does NOT use TypedResults.
 - Middleware delegate defaults (`OnVersionChange`, `OnEmptyResponse`) — use `TypedResults.Conflict()`, `TypedResults.NoContent()`, etc.
 - `MapInertia()` endpoint — wraps `InertiaResponse` (custom result), not TypedResults.
@@ -136,6 +139,7 @@ Inertia config is startup configuration that doesn't change at runtime. Use `IOp
 | `ResolvesOnce` | `class OnceInfo` (composition, mutable for fluent API) | OptionalProp, OnceProp, MergeProp, DeferProp |
 
 Class hierarchy:
+
 ```
 AlwaysProp<T> (standalone)
 OptionalProp<T> : IIgnoreFirstLoad, IOnceable  [contains OnceInfo]
@@ -308,20 +312,26 @@ tests/Inertia.Testing.Tests/             # Tests for the testing package
 ## Critical Infrastructure Items
 
 ### Validation Error Pipeline
+
 Laravel auto-redirects with errors in session. ASP.NET Core has no equivalent. We need:
+
 1. **`InertiaValidationFilter`** (endpoint filter) — catches `ModelState` failures, stores errors in TempData, returns 302 redirect back
 2. **In `InertiaMiddleware`** — reads validation errors from TempData and shares them as `Prop.Always(() => errors)` on the next request
 
 ### Polymorphic JSON Serialization
+
 `Dictionary<string, object?>` props serialize as `{}` with System.Text.Json when using declared type. Solution: serialize each value with `JsonSerializer.Serialize(value, value.GetType(), options)` or use `JsonSerializer.SerializeToNode()`.
 
 ### InternalsVisibleTo
+
 Add `[assembly: InternalsVisibleTo("Inertia.Tests")]` to `Inertia.AspNetCore` so `PropsResolver` (internal) can be unit tested.
 
 ### SSR Gateway State Fix
+
 Per-request path exclusions (`WithoutSsr()`) flow through scoped `SsrState`, not the singleton `HttpSsrGateway`. Global exclusions go in `InertiaOptions`.
 
 ### HttpSsrGateway Resilience
+
 Use `IHttpClientFactory` with `AddStandardResilienceHandler()` per dotnet-recommended guidelines.
 
 ---
@@ -329,23 +339,30 @@ Use `IHttpClientFactory` with `AddStandardResilienceHandler()` per dotnet-recomm
 ## Implementation Phases
 
 ### Phase 0: Project Setup ✅ (Already Done)
+
 Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet build` succeeds.
 
 ### Phase 1: Constants, Options, Interfaces, Contexts
+
 **Files:** `InertiaHeaderNames.cs`, `InertiaSessionKeys.cs`, `InertiaOptions.cs`, all interfaces, `RenderContext.cs`, `PropertyContext.cs`, `ComponentNotFoundException.cs`
+
 - Direct translations from PHP
 - InertiaOptions with `ValidateDataAnnotations()` + `ValidateOnStart()`
 - Add `InternalsVisibleTo` to AssemblyInfo
 
 ### Phase 2: Property Types + Trait Compositions
+
 **Files:** `Prop.cs`, `CallableResolver.cs`, `MergeablePropBase.cs`, `DeferInfo.cs`, `OnceInfo.cs`, all `Props/*.cs`
+
 - Generic prop types: `DeferProp<T>`, `OptionalProp<T>`, `AlwaysProp<T>`, etc.
 - `Prop` static factory with overloads for `Func<T>`, `Func<Task<T>>`
 - Non-generic base interfaces (`IDeferrable`, `IMergeable`, etc.) with generic concrete types
 - Unit tests for each prop type
 
 ### Phase 3: Response Factory + Response
+
 **Files:** `IInertia.cs`, `InertiaFactory.cs`, `InertiaResponse.cs`, `InertiaLocationResult.cs`, `InertiaPage.cs`
+
 - `InertiaResponse : IActionResult, IResult`
 - `InertiaLocationResult : IActionResult, IResult`
 - `Render()` with `object?` props (handles anonymous types + dictionaries)
@@ -353,7 +370,9 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - JSON serialization with runtime-type polymorphism
 
 ### Phase 4: PropsResolver (Most Complex)
+
 **File:** `PropsResolver.cs` (~400-500 lines)
+
 - Port of 681-line PHP `PropsResolver.php`
 - Receives `IServiceProvider` from `HttpContext.RequestServices`
 - Key methods: `Resolve()`, `ResolveProps()` (recursive), `ResolveValue()`, `ShouldIncludeInPartialResponse()`, `ExcludeFromInitialResponse()`, `CollectMetadata()`, `BuildMetadata()`
@@ -362,7 +381,9 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Comprehensive unit tests (most critical test coverage)
 
 ### Phase 5: Middleware + Validation Pipeline
+
 **Files:** `InertiaMiddleware.cs`, `EncryptHistoryMiddleware.cs`
+
 - `IMiddleware` implementation
 - Configuration delegates from `InertiaOptions` (not virtual methods)
 - Version checking, 302→303, `Vary: X-Inertia`, fragment redirect
@@ -370,13 +391,17 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Integration tests via WebApplicationFactory
 
 ### Phase 6: SSR
+
 **Files:** `ISsrGateway.cs`, `HttpSsrGateway.cs`, `SsrResponse.cs`, `SsrState.cs`, `SsrBundleDetector.cs`, `SsrErrorType.cs`
+
 - `IHttpClientFactory` with `AddStandardResilienceHandler()`
 - `SsrState` (scoped) holds per-request path exclusions + dispatch cache
 - Gateway returns `SsrResponse?` (nullable on failure, logged via `ILogger`)
 
 ### Phase 7: DI Registration + Tag Helpers
+
 **Files:** Extensions, Tag Helpers
+
 - `AddInertia(Action<InertiaOptions>?)` with `ValidateOnStart()`
 - `UseInertia()` — explicit pipeline registration (not auto-registered)
 - `MapInertia()` → returns `RouteHandlerBuilder`
@@ -384,19 +409,24 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Registers `IHttpContextAccessor`
 
 ### Phase 8: Testing Package
+
 **Files:** `Inertia.Testing/*`
+
 - `AssertableInertia` — fluent assertions on component, props, URL, deferred, merge
 - `InertiaTestExtensions` — `HttpResponseMessage.AssertInertia(Action<AssertableInertia>)`
 - `ReloadRequest` — builds partial reload requests with correct headers
 
 ### Phase 9: Tests
+
 Port key tests from inertia-laravel, focusing on:
+
 - PropsResolver (1066-line PHP test suite → comprehensive coverage)
 - Middleware behavior (integration tests)
 - SSR fallback
 - End-to-end rendering
 
 ### Phase 10: Exception Handling (Optional/Later)
+
 - `ExceptionResponse.cs` adapted for ASP.NET Core `IExceptionHandler`
 
 ---
@@ -404,11 +434,13 @@ Port key tests from inertia-laravel, focusing on:
 ## Verification
 
 After each phase:
+
 1. `dotnet format` — no formatting issues
 2. `dotnet build` — zero warnings, zero errors
 3. `dotnet test` — all tests pass
 
 Key behavioral tests per phase:
+
 - **Phase 2:** Property types resolve correctly, metadata is collected
 - **Phase 3-4:** `InertiaResponse` returns correct JSON for Inertia requests and renders view for initial loads; prop resolution handles partials, deferred, once, merge
 - **Phase 5:** Middleware detects Inertia requests, handles version mismatch (409), converts 302→303, shares validation errors
