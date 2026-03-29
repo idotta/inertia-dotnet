@@ -464,13 +464,16 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Tag Helpers use `[ViewContextAttribute]` + `[HtmlAttributeNotBound]` for `HttpContext` access
 - No csproj changes — all required types are in the `Microsoft.AspNetCore.App` framework reference
 
-### Phase 8: Testing Package
+### Phase 8: Testing Package ✅
 
 **Files:** `Inertia.Testing/*`
 
-- `AssertableInertia` — fluent assertions on component, props, URL, deferred, merge
-- `InertiaTestExtensions` — `HttpResponseMessage.AssertInertia(Action<AssertableInertia>)`
-- `ReloadRequest` — builds partial reload requests with correct headers
+- `AssertableInertia` (public sealed) — fluent assertions on component, props (with dot-notation navigation), URL, version, flash, deferred props. Factory methods: `FromJson()` (public) and `FromResponseAsync()` (internal). Prop assertions: `Has()`, `Missing()`, `HasAll()`, `MissingAll()`, `Where()` (value comparison + callback). Flash assertions: `HasFlash()`, `MissingFlash()`. Reload methods: `ReloadAsync()`, `ReloadOnlyAsync()`, `ReloadExceptAsync()`, `LoadDeferredPropsAsync()`. Data access: `Prop()`, `Prop<T>()`, `ToPage()`, `GetComponent()`, `GetUrl()`, `GetVersion()`, `GetProps()`, `GetDeferredProps()`
+- `InertiaTestExtensions` (public static) — `HttpResponseMessage.AssertInertia(Action<AssertableInertia>, HttpClient?)`, `.InertiaPage()`, `.InertiaProps(string?)` + `Task<HttpResponseMessage>` overloads
+- `ReloadRequest` (internal sealed) — builds partial reload HTTP requests with correct Inertia headers (`X-Inertia`, `X-Inertia-Version`, `X-Inertia-Partial-Component`, `X-Inertia-Partial-Data`, `X-Inertia-Partial-Except`)
+- Uses `System.Text.Json.JsonDocument` + `JsonElement.Clone()` for JSON parsing without `IDisposable` on `AssertableInertia`
+- `Xunit.Assert` for test failure messages (compatible with xunit v3 test runners)
+- Supports HTML response fallback via `data-page` attribute extraction
 
 ### Phase 9: Tests
 

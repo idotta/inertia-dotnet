@@ -87,7 +87,8 @@ The project follows a phased plan (see `.docs/PLAN.md`). Current status:
 - **Phase 5** (middleware + validation pipeline) — complete
 - **Phase 6** (SSR) — complete
 - **Phase 7** (DI registration, Tag Helpers, view rendering) — complete
-- **Phase 8+** (testing package) — not started
+- **Phase 8** (testing package: AssertableInertia, InertiaTestExtensions, ReloadRequest) — complete
+- **Phase 9+** (porting PHP tests, exception handling) — not started
 
 Subsequent phases build incrementally — check the plan for current status before starting work.
 
