@@ -137,7 +137,7 @@ Inertia config is startup configuration that doesn't change at runtime. Use `IOp
 | `MergesProps` trait | `abstract class MergeablePropBase : IMergeable` (inheritance) |
 | `DefersProps` trait | `record struct DeferInfo` (composition) |
 | `ResolvesOnce` trait | `class OnceInfo` (composition, mutable for fluent API) |
-| `ResolvesCallables` trait | `internal static class CallableResolver` (shared helper) |
+| `ResolvesCallables` trait | Typed fields on each prop (`Func<T>?`, `Func<Task<T>>?`) — no shared helper, no reflection |
 | Laravel events (`SsrRenderFailed`) | Structured `ILogger` events (no custom event bus) |
 | `Macroable` | Not applicable; use extension methods |
 
@@ -147,7 +147,7 @@ Inertia config is startup configuration that doesn't change at runtime. Use `IOp
 
 | PHP Trait | C# Approach | Used By |
 |---|---|---|
-| `ResolvesCallables` | `internal static class CallableResolver` (shared helper) | All prop types, PropsResolver |
+| `ResolvesCallables` | Typed fields per prop type (`Func<T>?`, `Func<Task<T>>?`, direct invocation) | All prop types |
 | `MergesProps` | `abstract class MergeablePropBase : IMergeable` (inheritance) | MergeProp, DeferProp, ScrollProp |
 | `DefersProps` | `record struct DeferInfo` (composition) | DeferProp, ScrollProp |
 | `ResolvesOnce` | `class OnceInfo` (composition, mutable for fluent API) | OptionalProp, OnceProp, MergeProp, DeferProp |
@@ -270,7 +270,7 @@ src/Inertia.AspNetCore/
 ├── InertiaPage.cs                       # Page object DTO for JSON serialization
 ├── Prop.cs                              # Static factory: Prop.Defer(), Prop.Always(), etc.
 ├── PropsResolver.cs                     # Prop resolution engine (internal sealed)
-├── CallableResolver.cs                  # Static helper for Func<T> resolution (internal)
+├── # CallableResolver.cs removed — prop types use typed fields, no reflection
 ├── InertiaHeaderNames.cs                # Header constants
 ├── InertiaSessionKeys.cs                # Session/TempData key constants
 ├── InertiaOptions.cs                    # Configuration + middleware delegates
@@ -386,24 +386,31 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Contexts: sealed classes with constructor validation, not records
 - `[assembly: InternalsVisibleTo("Inertia.Tests")]` in AssemblyInfo
 
-### Phase 2: Property Types + Trait Compositions
+### Phase 2: Property Types + Trait Compositions ✅
 
-**Files:** `Prop.cs`, `CallableResolver.cs`, `MergeablePropBase.cs`, `DeferInfo.cs`, `OnceInfo.cs`, all `Props/*.cs`
+**Files:** `Prop.cs`, `MergeablePropBase.cs`, `DeferInfo.cs`, `OnceInfo.cs`, all `Props/*.cs`
 
-- Generic prop types: `DeferProp<T>`, `OptionalProp<T>`, `AlwaysProp<T>`, etc.
-- `Prop` static factory with overloads for `Func<T>`, `Func<Task<T>>`
-- Non-generic base interfaces (`IDeferrable`, `IMergeable`, etc.) with generic concrete types
-- Unit tests for each prop type
+- 11 source files + 10 test files (181 new tests, cumulative 262)
+- Generic prop types: `DeferProp<T>`, `OptionalProp<T>`, `AlwaysProp<T>`, `MergeProp<T>`, `OnceProp<T>`, `ScrollProp<T>`
+- `Prop` static factory with overloads for `T value`, `Func<T>`, `Func<Task<T>>` + `DeepMerge` convenience
+- Composition objects: `DeferInfo` (record struct), `OnceInfo` (sealed class), `MergeablePropBase` (abstract)
+- Prop types use typed fields (`T? _value`, `Func<T>? _syncCallback`, `Func<Task<T>>? _asyncCallback`) — no reflection, no `object` boxing
+- Only `ResolveAsync()` — no sync `Resolve()` (eliminates bug vector of calling sync on async prop)
+- `CallableResolver` removed — each prop type handles its own resolution via typed invocation
+- `ScrollMetadata` default `IScrollMetadataProvider` implementation
+- Fluent APIs on concrete types with `new` shadowing for covariant returns
+- IOnceable properties use explicit interface implementation
 
-### Phase 3: Response Factory + Response
+### Phase 3: Response Factory + Response ✅
 
 **Files:** `IInertia.cs`, `InertiaFactory.cs`, `InertiaResponse.cs`, `InertiaLocationResult.cs`, `InertiaPage.cs`
 
-- `InertiaResponse : IActionResult, IResult`
-- `InertiaLocationResult : IActionResult, IResult`
-- `Render()` with `object?` props (handles anonymous types + dictionaries)
-- `WithViewData()` fluent method on `InertiaResponse`
-- JSON serialization with runtime-type polymorphism
+- 5 source files + 5 test files (100 new tests, cumulative 362)
+- `InertiaResponse : IActionResult, IResult` — JSON for Inertia requests, minimal HTML for initial loads (full Razor rendering deferred to Phase 7)
+- `InertiaLocationResult : IActionResult, IResult` — 409 + X-Inertia-Location for Inertia requests, 302 for standard
+- `InertiaFactory` (internal sealed, scoped) implements `IInertia` with per-request shared state, flash via TempData, anonymous object reflection
+- `InertiaPage` DTO with conditional JSON serialization and `RuntimeTypeJsonConverter` for polymorphic `object?` values
+- Prop resolution is minimal (shared+page merge only) — full resolution deferred to Phase 4 (PropsResolver)
 
 ### Phase 4: PropsResolver (Most Complex)
 

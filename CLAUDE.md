@@ -77,7 +77,13 @@ MergeablePropBase  (abstract) : IMergeable
 
 ### Implementation Phases
 
-The project follows a phased plan (see `.docs/PLAN.md`). Phase 1 (constants, options, interfaces, contexts) is complete. Subsequent phases build incrementally — check the plan for current status before starting work.
+The project follows a phased plan (see `.docs/PLAN.md`). Current status:
+- **Phase 1** (constants, options, interfaces, contexts) — complete
+- **Phase 2** (property types + trait compositions) — complete
+- **Phase 3** (response factory + response) — complete
+- **Phase 4+** (PropsResolver, middleware, SSR, DI registration, Tag Helpers, testing package) — not started
+
+Subsequent phases build incrementally — check the plan for current status before starting work.
 
 ## Test Conventions
 
@@ -95,4 +101,11 @@ The project follows a phased plan (see `.docs/PLAN.md`). Phase 1 (constants, opt
 - No `required` keyword on Options classes (conflicts with parameterless constructor requirement)
 - Contexts are sealed classes, not records (no meaningful value equality with HttpContext)
 - Interfaces are query-only — fluent mutation methods go on concrete types
+- IOnceable properties use explicit interface implementation on prop types (access via cast: `((IOnceable)prop).ShouldResolveOnce`)
+- Concrete prop types shadow `MergeablePropBase` fluent methods with `new` for covariant return types (e.g., `public new DeferProp<T> Merge()`)
+- Prop types use typed fields (`T? _value`, `Func<T>? _syncCallback`, `Func<Task<T>>? _asyncCallback`) — no reflection, no `object` boxing of callbacks
+- Prop types expose only `ResolveAsync()` — no sync `Resolve()`. PropsResolver (Phase 4) is async, so this is the only resolution path
+- `InertiaPage.DefaultJsonOptions` includes `RuntimeTypeJsonConverter` for polymorphic `object?` serialization
+- `InertiaFactory` is `internal sealed` — consumers interact via `IInertia` interface
+- Initial page load writes minimal `<div id="app" data-page='...'>` HTML — full Razor view rendering deferred to Phase 7
 - XML doc comments on all public API surface
