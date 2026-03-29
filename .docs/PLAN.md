@@ -451,15 +451,18 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Path exclusions on `SsrState` (scoped), not the Singleton gateway — per-request isolation
 - No Vite hot module, no Laravel events — `ILogger` for error reporting
 
-### Phase 7: DI Registration + Tag Helpers
+### Phase 7: DI Registration + Tag Helpers + View Rendering ✅
 
-**Files:** Extensions, Tag Helpers
-
-- `AddInertia(Action<InertiaOptions>?)` with `ValidateOnStart()`
-- `UseInertia()` — explicit pipeline registration (not auto-registered)
-- `MapInertia()` → returns `RouteHandlerBuilder`
-- `<inertia-app>` / `<inertia-head>` Tag Helpers (not Razor Components)
-- Registers `IHttpContextAccessor`
+- 7 source files + 5 test files (31 new tests, cumulative 537)
+- `AddInertia(Action<InertiaOptions>?)` — registers all services with `ValidateDataAnnotations() + ValidateOnStart()`, `BindConfiguration("Inertia")`, `TryAdd*` for idempotent registration, named HttpClient `"InertiaSSR"`
+- `UseInertia()` / `UseInertiaEncryptHistory()` — middleware pipeline extensions
+- `MapInertia(pattern, component, props)` — shorthand endpoint registration (like Laravel `Route::inertia()`), returns `RouteHandlerBuilder` for chaining
+- `InertiaAppTagHelper` (`<inertia-app>`) — renders SSR body or CSR fallback div with `data-page` attribute. Resolves `SsrState` from `RequestServices` (internal type, not constructor-injectable). Checks path exclusions before SSR dispatch
+- `InertiaHeadTagHelper` (`<inertia-head>`) — renders SSR head content or child content fallback (slot)
+- `InertiaViewRenderer` (internal sealed, Scoped) — renders Razor views using `IRazorViewEngine`. Resolved from `RequestServices` in `InertiaResponse.Execute()` for initial page loads
+- `InertiaResponse` modified — delegates to `InertiaViewRenderer.RenderAsync()` for initial page loads, falls back to inline HTML when DI not configured (unit test compatibility)
+- Tag Helpers use `[ViewContextAttribute]` + `[HtmlAttributeNotBound]` for `HttpContext` access
+- No csproj changes — all required types are in the `Microsoft.AspNetCore.App` framework reference
 
 ### Phase 8: Testing Package
 

@@ -59,6 +59,8 @@ The implementation plan lives at `.docs/PLAN.md`. Each C# type maps to a specifi
 | `InertiaMiddleware` | Transient | IMiddleware, resolved per request |
 | `ISsrGateway` / `HttpSsrGateway` | Singleton | Stateless, uses IHttpClientFactory |
 | `SsrState` | Scoped | Per-request SSR dispatch cache |
+| `SsrBundleDetector` | Singleton | Stateless file checks |
+| `InertiaViewRenderer` | Scoped | Renders Razor views for initial page loads |
 | `IOptions<InertiaOptions>` | Singleton | Startup config |
 
 `PropsResolver` is **not** in DI — created per-response inside `InertiaResponse`, receives `IServiceProvider` from `HttpContext.RequestServices`.
@@ -84,7 +86,8 @@ The project follows a phased plan (see `.docs/PLAN.md`). Current status:
 - **Phase 4** (PropsResolver) — in progress
 - **Phase 5** (middleware + validation pipeline) — complete
 - **Phase 6** (SSR) — complete
-- **Phase 7+** (DI registration, Tag Helpers, testing package) — not started
+- **Phase 7** (DI registration, Tag Helpers, view rendering) — complete
+- **Phase 8+** (testing package) — not started
 
 Subsequent phases build incrementally — check the plan for current status before starting work.
 

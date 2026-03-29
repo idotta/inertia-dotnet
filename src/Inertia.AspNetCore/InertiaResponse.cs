@@ -108,25 +108,33 @@ public sealed class InertiaResponse : IActionResult, IResult
             httpContext.Items["InertiaPage"] = page;
             httpContext.Items["InertiaPageJson"] = page.ToJson(_jsonOptions);
 
-            // Store page on SsrState for SSR dispatch (Phase 7 Tag Helpers call DispatchAsync)
+            // Store page on SsrState for SSR dispatch (Tag Helpers call DispatchAsync)
             if (httpContext.RequestServices?.GetService<SsrState>() is { } ssrState)
                 ssrState.SetPage(page);
 
             httpContext.Response.StatusCode = StatusCodes.Status200OK;
             httpContext.Response.ContentType = "text/html; charset=utf-8";
 
-            // Store view data for when view rendering is set up
+            // Store view data for Razor view
             if (_viewData is not null)
             {
                 foreach (var (key, value) in _viewData)
                     httpContext.Items[$"InertiaViewData:{key}"] = value;
             }
 
-            // Write a minimal response that includes the page data.
-            // This will be replaced by proper Razor view rendering in Phase 7 (Tag Helpers).
-            var pageJson = page.ToJson(_jsonOptions);
-            await httpContext.Response.WriteAsync(
-                $"<div id=\"app\" data-page='{System.Web.HttpUtility.HtmlAttributeEncode(pageJson)}'></div>");
+            // Render the root Razor view (contains <inertia-app> and <inertia-head> Tag Helpers)
+            var viewRenderer = httpContext.RequestServices?.GetService<InertiaViewRenderer>();
+            if (viewRenderer is not null)
+            {
+                await viewRenderer.RenderAsync(httpContext, _rootView, _viewData);
+            }
+            else
+            {
+                // Fallback when DI is not configured (e.g., unit tests without AddInertia)
+                var pageJson = page.ToJson(_jsonOptions);
+                await httpContext.Response.WriteAsync(
+                    $"<div id=\"app\" data-page='{System.Web.HttpUtility.HtmlAttributeEncode(pageJson)}'></div>");
+            }
         }
     }
 
