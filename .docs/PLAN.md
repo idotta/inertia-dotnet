@@ -105,6 +105,20 @@ builder.Services.AddInertia(options =>
 
 Inertia config is startup configuration that doesn't change at runtime. Use `IOptions<InertiaOptions>` with `ValidateDataAnnotations()` + `ValidateOnStart()`.
 
+### 11. Page Identifiers — `object?` for Now, Custom Discriminated Union Later
+
+`IScrollMetadataProvider` uses `object?` for `PreviousPage`, `NextPage`, `CurrentPage`. PHP uses `int|string|null` (int for offset pagination, string for cursor pagination). A custom `PageIdentifier` discriminated union with implicit conversions from `int` and `string` would be type-safe but is deferred to avoid over-engineering Phase 1. `string?` alone won't work because it changes JSON serialization (`2` vs `"2"`). The OneOf library is excluded (same transitive dependency concern as ErrorOr). **TODO:** Revisit in Phase 2 when `ScrollProp` is implemented.
+
+### 12. Phase 1 Implementation Decisions (finalized during coding)
+
+- **No `required` keyword on InertiaOptions** — conflicts with Options pattern (parameterless constructor needed). Use `[Required]` annotation + `ValidateOnStart()` instead.
+- **All InertiaOptions properties use `{ get; set; }`** (not `init`) — Options binding and `.Configure()` delegates need mutable setters.
+- **Flat InertiaOptions** (not nested classes) — properties prefixed: `SsrEnabled`, `SsrUrl`, etc. Simpler than nested `SsrOptions` class.
+- **Interfaces are query-only** — fluent mutation methods (`Merge()`, `Once()`, `Defer()`) go on concrete types in Phase 2. Interfaces expose only what PropsResolver needs to inspect.
+- **Contexts are sealed classes** (not records) — HttpContext doesn't have meaningful value equality.
+- **Flat namespace `Inertia.AspNetCore`** for all types — `Interfaces/`, `Contexts/` subfolders are physical organization only, not namespace.
+- **SsrUrl defaults to `"http://127.0.0.1:13714"`** (no `/render`) — gateway appends `/render` at call time, matching PHP behavior in `HttpGateway.php`.
+
 ---
 
 ## PHP-to-C# Mapping
@@ -185,35 +199,43 @@ public interface IInertia
 
 ---
 
-## InertiaOptions (with Middleware Delegates)
+## InertiaOptions (Implemented)
 
 ```csharp
-public class InertiaOptions
+public sealed class InertiaOptions
 {
     public const string Section = "Inertia";
 
-    [Required]
-    public required string RootView { get; init; } = "~/Views/App.cshtml";
+    [Required] public string RootView { get; set; } = "~/Views/App.cshtml";
+    public bool EncryptHistory { get; set; }
+    public bool ExposeSharedPropKeys { get; set; } = true;
 
-    public bool EncryptHistory { get; init; }
-    public bool SsrEnabled { get; init; }
+    // SSR
+    public bool SsrEnabled { get; set; } = true;
+    [Url] public string SsrUrl { get; set; } = "http://127.0.0.1:13714";
+    public bool SsrEnsureBundleExists { get; set; } = true;
+    public string? SsrBundle { get; set; }
+    public bool SsrThrowOnError { get; set; }
 
-    [Url]
-    public string SsrUrl { get; init; } = "http://127.0.0.1:13714/render";
+    // Pages
+    public bool EnsurePagesExist { get; set; }
+    public string[] PagePaths { get; set; } = [];
+    public string[] PageExtensions { get; set; } = ["js", "jsx", "svelte", "ts", "tsx", "vue"];
+    public bool TestingEnsurePagesExist { get; set; } = true;
 
+    // Serialization
     public JsonSerializerOptions? JsonSerializerOptions { get; set; }
 
-    // Middleware delegate overrides (instead of subclassing)
-    // Defaults use TypedResults for standard HTTP responses
+    // Middleware delegates (defaults use TypedResults)
     public Func<HttpContext, string>? VersionProvider { get; set; }
     public Func<HttpContext, string>? RootViewProvider { get; set; }
     public Func<HttpContext, IServiceProvider, IDictionary<string, object?>>? SharedPropsProvider { get; set; }
-    public Func<HttpContext, IResult>? OnVersionChange { get; set; }   // default: TypedResults.Conflict() + X-Inertia-Location
-    public Func<HttpContext, IResult>? OnEmptyResponse { get; set; }   // default: TypedResults.NoContent()
+    public Func<HttpContext, IResult>? OnVersionChange { get; set; }
+    public Func<HttpContext, IResult>? OnEmptyResponse { get; set; }
 }
 ```
 
-Registration: `ValidateDataAnnotations()` + `ValidateOnStart()`.
+Registration: `ValidateDataAnnotations()` + `ValidateOnStart()`. All properties `{ get; set; }` for Options pattern compatibility.
 
 ---
 
@@ -239,6 +261,8 @@ Registration: `ValidateDataAnnotations()` + `ValidateOnStart()`.
 ```
 src/Inertia.AspNetCore/
 ├── Inertia.AspNetCore.csproj
+├── Properties/
+│   └── AssemblyInfo.cs                  # [assembly: InternalsVisibleTo("Inertia.Tests")]
 ├── IInertia.cs                          # Main factory interface (slimmed down)
 ├── InertiaFactory.cs                    # IInertia implementation (scoped)
 ├── InertiaResponse.cs                   # IActionResult + IResult
@@ -299,13 +323,23 @@ src/Inertia.Testing/
 ├── InertiaTestExtensions.cs
 └── ReloadRequest.cs
 
-tests/Inertia.Tests/                     # Unit + integration tests
+tests/Inertia.Tests/
+├── InertiaHeaderNamesTests.cs
+├── InertiaSessionKeysTests.cs
+├── InertiaOptionsTests.cs
+├── ComponentNotFoundExceptionTests.cs
+├── Contexts/
+│   ├── RenderContextTests.cs
+│   └── PropertyContextTests.cs
+└── Interfaces/
+    └── InterfaceContractTests.cs
+
 tests/Inertia.Testing.Tests/             # Tests for the testing package
 ```
 
 **Removed from original:** `SsrRenderFailed.cs`, `SsrException.cs` (use structured `ILogger` events instead)
 
-**Added:** `Prop.cs`, `CallableResolver.cs`, `InertiaLocationResult.cs`, `MergeablePropBase.cs`, `DeferInfo.cs`, `OnceInfo.cs`
+**Added:** `Prop.cs`, `CallableResolver.cs`, `InertiaLocationResult.cs`, `MergeablePropBase.cs`, `DeferInfo.cs`, `OnceInfo.cs`, `Properties/AssemblyInfo.cs`
 
 ---
 
@@ -322,9 +356,9 @@ Laravel auto-redirects with errors in session. ASP.NET Core has no equivalent. W
 
 `Dictionary<string, object?>` props serialize as `{}` with System.Text.Json when using declared type. Solution: serialize each value with `JsonSerializer.Serialize(value, value.GetType(), options)` or use `JsonSerializer.SerializeToNode()`.
 
-### InternalsVisibleTo
+### InternalsVisibleTo ✅
 
-Add `[assembly: InternalsVisibleTo("Inertia.Tests")]` to `Inertia.AspNetCore` so `PropsResolver` (internal) can be unit tested.
+`[assembly: InternalsVisibleTo("Inertia.Tests")]` added to `Properties/AssemblyInfo.cs`.
 
 ### SSR Gateway State Fix
 
@@ -342,13 +376,15 @@ Use `IHttpClientFactory` with `AddStandardResilienceHandler()` per dotnet-recomm
 
 Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet build` succeeds.
 
-### Phase 1: Constants, Options, Interfaces, Contexts
+### Phase 1: Constants, Options, Interfaces, Contexts ✅
 
-**Files:** `InertiaHeaderNames.cs`, `InertiaSessionKeys.cs`, `InertiaOptions.cs`, all interfaces, `RenderContext.cs`, `PropertyContext.cs`, `ComponentNotFoundException.cs`
+**Files:** `InertiaHeaderNames.cs`, `InertiaSessionKeys.cs`, `InertiaOptions.cs`, all 7 interfaces, `RenderContext.cs`, `PropertyContext.cs`, `ComponentNotFoundException.cs`, `Properties/AssemblyInfo.cs`
 
-- Direct translations from PHP
-- InertiaOptions with `ValidateDataAnnotations()` + `ValidateOnStart()`
-- Add `InternalsVisibleTo` to AssemblyInfo
+- 15 source files + 7 test files (81 tests, all passing)
+- InertiaOptions: sealed, flat properties, `[Required]` on RootView, `[Url]` on SsrUrl, all `{ get; set; }`
+- Interfaces: query-only (no mutation methods), flat `Inertia.AspNetCore` namespace
+- Contexts: sealed classes with constructor validation, not records
+- `[assembly: InternalsVisibleTo("Inertia.Tests")]` in AssemblyInfo
 
 ### Phase 2: Property Types + Trait Compositions
 
