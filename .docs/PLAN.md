@@ -423,15 +423,17 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - Defensive assertion: no `Func<>` types leak past resolution (debug builds)
 - Comprehensive unit tests (most critical test coverage)
 
-### Phase 5: Middleware + Validation Pipeline
+### Phase 5: Middleware + Validation Pipeline ✅
 
-**Files:** `InertiaMiddleware.cs`, `EncryptHistoryMiddleware.cs`
+**Files:** `Middleware/InertiaMiddleware.cs`, `Middleware/EncryptHistoryMiddleware.cs`
 
-- `IMiddleware` implementation
-- Configuration delegates from `InertiaOptions` (not virtual methods)
-- Version checking, 302→303, `Vary: X-Inertia`, fragment redirect
-- Validation error sharing via TempData
-- Integration tests via WebApplicationFactory
+- 2 source files + 2 test files (34 new tests, cumulative 456)
+- `InertiaMiddleware` (internal sealed, `IMiddleware`) — version check (short-circuit before `next()` on mismatch), `Vary: X-Inertia` header (via `OnStarting` + explicit set), 302→303 for PUT/PATCH/DELETE, empty response handling (redirect to Referer, fallback 204), fragment redirect (409 + `X-Inertia-Redirect`)
+- `EncryptHistoryMiddleware` (internal sealed, `IMiddleware`) — calls `IInertia.EncryptHistory()` before downstream
+- Configuration delegates from `InertiaOptions` (not virtual methods): `VersionProvider`, `SharedPropsProvider`, `RootViewProvider`, `OnVersionChange`, `OnEmptyResponse`
+- Validation error sharing is consumer responsibility via `SharedPropsProvider` (no auto-resolution — ASP.NET Core lacks Laravel's `ViewErrorBag`)
+- Flash data reflashing on redirects and version mismatches via TempData
+- Version check happens BEFORE `next()` (eagerly evaluated, avoids response buffering)
 
 ### Phase 6: SSR
 

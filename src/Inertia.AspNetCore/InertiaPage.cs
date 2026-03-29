@@ -41,9 +41,17 @@ public sealed class InertiaPage
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? MergeProps { get; init; }
 
+    /// <summary>Props that should be prepended to existing client-side data.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? PrependProps { get; init; }
+
     /// <summary>Props that should be deep-merged with existing client-side data.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public IReadOnlyList<string>? DeepMergeProps { get; init; }
+
+    /// <summary>Key matching strategies for mergeable props.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<string>? MatchPropsOn { get; init; }
 
     /// <summary>Props resolved only once per session.</summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

@@ -3,7 +3,7 @@ namespace Inertia.AspNetCore;
 /// <summary>
 /// A property only included when explicitly requested via partial reloads.
 /// </summary>
-public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable
+public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable, IResolvableProp<T>
 {
     private readonly Func<T>? _syncCallback;
     private readonly Func<Task<T>>? _asyncCallback;
@@ -18,12 +18,15 @@ public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable
     public OptionalProp(Func<Task<T>> asyncCallback) => _asyncCallback = asyncCallback;
 
     /// <summary>Resolves the property value, awaiting async callbacks if present.</summary>
-    public async Task<object?> ResolveAsync()
+    public async Task<T> ResolveAsync()
     {
         if (_asyncCallback is not null) return await _asyncCallback();
         if (_syncCallback is not null) return _syncCallback();
-        return default(T);
+        return default!;
     }
+
+    /// <inheritdoc />
+    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
 
     // IOnceable (explicit interface implementation)
     bool IOnceable.ShouldResolveOnce => _once.ShouldResolveOnce;

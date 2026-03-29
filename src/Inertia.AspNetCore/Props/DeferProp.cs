@@ -3,7 +3,7 @@ namespace Inertia.AspNetCore;
 /// <summary>
 /// A property excluded from initial page load, evaluated only when requested by the frontend.
 /// </summary>
-public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstLoad, IOnceable
+public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstLoad, IOnceable, IResolvableProp<T>
 {
     private readonly Func<T>? _syncCallback;
     private readonly Func<Task<T>>? _asyncCallback;
@@ -27,12 +27,15 @@ public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstL
     }
 
     /// <summary>Resolves the property value, awaiting async callbacks if present.</summary>
-    public async Task<object?> ResolveAsync()
+    public async Task<T> ResolveAsync()
     {
         if (_asyncCallback is not null) return await _asyncCallback();
         if (_syncCallback is not null) return _syncCallback();
-        return default(T);
+        return default!;
     }
+
+    /// <inheritdoc />
+    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
 
     /// <inheritdoc />
     bool IDeferrable.ShouldDefer => _defer.ShouldDefer;

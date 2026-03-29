@@ -19,6 +19,7 @@ public sealed class InertiaResponse : IActionResult, IResult
     private readonly bool _clearHistory;
     private readonly bool _preserveFragment;
     private readonly IDictionary<string, object?>? _flash;
+    private readonly bool _exposeSharedPropKeys;
     private readonly JsonSerializerOptions _jsonOptions;
     private Dictionary<string, object?>? _viewData;
 
@@ -33,6 +34,7 @@ public sealed class InertiaResponse : IActionResult, IResult
         bool clearHistory,
         bool preserveFragment,
         IDictionary<string, object?>? flash,
+        bool exposeSharedPropKeys,
         JsonSerializerOptions? jsonOptions)
     {
         _component = component;
@@ -45,6 +47,7 @@ public sealed class InertiaResponse : IActionResult, IResult
         _clearHistory = clearHistory;
         _preserveFragment = preserveFragment;
         _flash = flash;
+        _exposeSharedPropKeys = exposeSharedPropKeys;
         _jsonOptions = jsonOptions ?? InertiaPage.DefaultJsonOptions;
     }
 
@@ -87,7 +90,7 @@ public sealed class InertiaResponse : IActionResult, IResult
 
     private async Task Execute(HttpContext httpContext)
     {
-        var page = BuildPage(httpContext);
+        var page = await BuildPageAsync(httpContext);
 
         if (httpContext.Request.Headers.ContainsKey(InertiaHeaderNames.Inertia))
         {
@@ -122,26 +125,29 @@ public sealed class InertiaResponse : IActionResult, IResult
         }
     }
 
-    private InertiaPage BuildPage(HttpContext httpContext)
+    private async Task<InertiaPage> BuildPageAsync(HttpContext httpContext)
     {
-        // Merge shared props with page props (shared first, page overrides)
-        var mergedProps = new Dictionary<string, object?>(_sharedProps);
-        foreach (var (key, value) in _props)
-            mergedProps[key] = value;
-
-        // NOTE: Full prop resolution (partial filtering, deferred exclusion, metadata collection)
-        // is deferred to Phase 4 (PropsResolver). For now, pass props through directly.
+        var resolver = new PropsResolver(httpContext, _component, _exposeSharedPropKeys);
+        var (resolvedProps, metadata) = await resolver.ResolveAsync(_sharedProps, _sharedProviders, _props);
 
         return new InertiaPage
         {
             Component = _component,
-            Props = mergedProps,
+            Props = resolvedProps,
             Url = GetUrl(httpContext.Request),
             Version = _version,
             ClearHistory = _clearHistory,
             EncryptHistory = _encryptHistory,
             PreserveFragment = _preserveFragment,
             Flash = _flash,
+            DeferredProps = metadata.DeferredProps,
+            MergeProps = metadata.MergeProps,
+            PrependProps = metadata.PrependProps,
+            DeepMergeProps = metadata.DeepMergeProps,
+            MatchPropsOn = metadata.MatchPropsOn,
+            ScrollProps = metadata.ScrollProps,
+            OnceProps = metadata.OnceProps,
+            SharedProps = metadata.SharedProps,
         };
     }
 

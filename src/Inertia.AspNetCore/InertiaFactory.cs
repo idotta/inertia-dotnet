@@ -68,6 +68,7 @@ internal sealed class InertiaFactory : IInertia
             clearHistory: _clearHistory,
             preserveFragment: _preserveFragment,
             flash: GetFlashedInternal(httpContext),
+            exposeSharedPropKeys: _options.ExposeSharedPropKeys,
             jsonOptions: _options.JsonSerializerOptions);
     }
 

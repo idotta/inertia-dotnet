@@ -37,7 +37,7 @@ public class MergePropTests
         {
             var prop = new MergeProp<int>(() => Task.FromResult(99));
 
-            (await prop.ResolveAsync()).Should().NotBeNull();
+            (await prop.ResolveAsync()).Should().Be(99);
         }
     }
 

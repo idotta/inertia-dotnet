@@ -32,6 +32,7 @@ public class InertiaResponseTests
             clearHistory: clearHistory,
             preserveFragment: preserveFragment,
             flash: flash,
+            exposeSharedPropKeys: true,
             jsonOptions: null);
     }
 

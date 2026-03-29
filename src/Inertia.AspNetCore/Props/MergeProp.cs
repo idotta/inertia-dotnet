@@ -3,7 +3,7 @@ namespace Inertia.AspNetCore;
 /// <summary>
 /// A property that is merged with existing client-side data during partial reloads.
 /// </summary>
-public sealed class MergeProp<T> : MergeablePropBase, IOnceable
+public sealed class MergeProp<T> : MergeablePropBase, IOnceable, IResolvableProp<T>
 {
     private readonly T? _value;
     private readonly Func<T>? _syncCallback;
@@ -20,12 +20,15 @@ public sealed class MergeProp<T> : MergeablePropBase, IOnceable
     public MergeProp(Func<Task<T>> asyncCallback) { _asyncCallback = asyncCallback; Merge(); }
 
     /// <summary>Resolves the property value, awaiting async callbacks if present.</summary>
-    public async Task<object?> ResolveAsync()
+    public async Task<T> ResolveAsync()
     {
         if (_asyncCallback is not null) return await _asyncCallback();
         if (_syncCallback is not null) return _syncCallback();
-        return _value;
+        return _value!;
     }
+
+    /// <inheritdoc />
+    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
 
     /// <inheritdoc />
     bool IOnceable.ShouldResolveOnce => _once.ShouldResolveOnce;

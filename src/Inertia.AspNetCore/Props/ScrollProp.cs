@@ -8,12 +8,12 @@ namespace Inertia.AspNetCore;
 /// Constructor auto-sets merge to true. Resolve caches result after first call.
 /// </summary>
 /// <typeparam name="T">The type of the scroll data value.</typeparam>
-public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable
+public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableProp<T>, IScrollPropInternal
 {
     private readonly T? _value;
     private readonly Func<T>? _syncCallback;
     private readonly Func<Task<T>>? _asyncCallback;
-    private object? _resolved;
+    private T? _resolved;
     private bool _hasResolved;
     private readonly string _wrapper;
     private readonly IScrollMetadataProvider? _metadata;
@@ -61,7 +61,7 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable
     }
 
     /// <summary>Resolves the value, caching after first call.</summary>
-    public async Task<object?> ResolveAsync()
+    public async Task<T> ResolveAsync()
     {
         if (!_hasResolved)
         {
@@ -73,12 +73,19 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable
                 _resolved = _value;
             _hasResolved = true;
         }
-        return _resolved;
+        return _resolved!;
     }
+
+    /// <inheritdoc />
+    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
 
     // IDeferrable (explicit)
     bool IDeferrable.ShouldDefer => _defer.ShouldDefer;
     string IDeferrable.Group => _defer.Group;
+
+    // IScrollPropInternal (explicit — return type differs from public fluent API)
+    void IScrollPropInternal.ConfigureMergeIntent(HttpRequest? request) => ConfigureMergeIntent(request);
+    IDictionary<string, object?> IScrollPropInternal.Metadata() => Metadata();
 
     /// <summary>Mark as deferred, optionally in a specific group.</summary>
     public ScrollProp<T> Defer(string? group = null) { _defer.Defer(group); return this; }
