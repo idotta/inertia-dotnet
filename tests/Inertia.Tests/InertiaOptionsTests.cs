@@ -137,6 +137,24 @@ public class InertiaOptionsTests
         }
 
         [Fact]
+        public void UrlResolver_DefaultsToNull()
+        {
+            _options.UrlResolver.Should().BeNull();
+        }
+
+        [Fact]
+        public void ValidationErrorProvider_DefaultsToNull()
+        {
+            _options.ValidationErrorProvider.Should().BeNull();
+        }
+
+        [Fact]
+        public void SharedOncePropsProvider_DefaultsToNull()
+        {
+            _options.SharedOncePropsProvider.Should().BeNull();
+        }
+
+        [Fact]
         public void OnVersionChange_DefaultsToNull()
         {
             _options.OnVersionChange.Should().BeNull();
@@ -257,6 +275,43 @@ public class InertiaOptionsTests
                 o.SharedPropsProvider = (_, _) => expected);
 
             var result = options.SharedPropsProvider!(
+                new DefaultHttpContext(),
+                new ServiceCollection().BuildServiceProvider());
+
+            result.Should().BeSameAs(expected);
+        }
+
+        [Fact]
+        public void UrlResolver_CanBeAssignedAndInvoked()
+        {
+            var options = CreateOptions(o =>
+                o.UrlResolver = _ => "/custom/url");
+
+            var result = options.UrlResolver!(new DefaultHttpContext());
+
+            result.Should().Be("/custom/url");
+        }
+
+        [Fact]
+        public void ValidationErrorProvider_CanBeAssignedAndInvoked()
+        {
+            var errors = new Dictionary<string, object?> { ["name"] = "Required" };
+            var options = CreateOptions(o =>
+                o.ValidationErrorProvider = (_, _) => errors);
+
+            var result = options.ValidationErrorProvider!(new DefaultHttpContext(), null);
+
+            result.Should().BeSameAs(errors);
+        }
+
+        [Fact]
+        public void SharedOncePropsProvider_CanBeAssignedAndInvoked()
+        {
+            var expected = new Dictionary<string, object?> { ["token"] = "abc" };
+            var options = CreateOptions(o =>
+                o.SharedOncePropsProvider = (_, _) => expected);
+
+            var result = options.SharedOncePropsProvider!(
                 new DefaultHttpContext(),
                 new ServiceCollection().BuildServiceProvider());
 

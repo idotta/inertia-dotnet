@@ -76,7 +76,9 @@ internal sealed class InertiaFactory : IInertia
             preserveFragment: _preserveFragment,
             flash: GetFlashedInternal(httpContext),
             exposeSharedPropKeys: _options.ExposeSharedPropKeys,
-            jsonOptions: _options.JsonSerializerOptions);
+            jsonOptions: _options.JsonSerializerOptions,
+            urlResolver: _options.UrlResolver,
+            flashAction: Flash);
     }
 
     /// <inheritdoc />
@@ -94,6 +96,22 @@ internal sealed class InertiaFactory : IInertia
 
     /// <inheritdoc />
     public void Share(IInertiaPropertyProvider provider) => _sharedProviders.Add(provider);
+
+    /// <inheritdoc />
+    public void ShareOnce<T>(string key, Func<T> callback)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(callback);
+        _sharedProps[key] = new OnceProp<T>(callback);
+    }
+
+    /// <inheritdoc />
+    public void ShareOnce<T>(string key, Func<Task<T>> callback)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(callback);
+        _sharedProps[key] = new OnceProp<T>(callback);
+    }
 
     /// <inheritdoc />
     public void Flash(string key, object? value)

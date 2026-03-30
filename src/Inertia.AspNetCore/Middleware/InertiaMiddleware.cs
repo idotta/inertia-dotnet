@@ -40,6 +40,27 @@ internal sealed class InertiaMiddleware : IMiddleware
         if (_options.SharedPropsProvider is { } spp)
             factory.Share(spp(context, context.RequestServices));
 
+        // 2b. Share validation errors from delegate (wrapped as AlwaysProp for partial-reload inclusion)
+        if (_options.ValidationErrorProvider is { } vep)
+        {
+            var errorBag = context.Request.Headers[InertiaHeaderNames.ErrorBag].FirstOrDefault();
+            factory.Share("errors", Prop.Always<IDictionary<string, object?>>(() => vep(context, errorBag)));
+        }
+
+        // 2c. Share once-props from delegate
+        if (_options.SharedOncePropsProvider is { } sopp)
+        {
+            foreach (var (key, value) in sopp(context, context.RequestServices))
+            {
+                if (value is IOnceable)
+                    factory.Share(key, value);
+                else if (value is Delegate d)
+                    factory.Share(key, new OnceProp<object?>(() => d.DynamicInvoke()));
+                else
+                    factory.Share(key, new OnceProp<object?>(() => value));
+            }
+        }
+
         // 3. Set root view from delegate
         if (_options.RootViewProvider is { } rvp)
             factory.SetRootView(rvp(context));
@@ -104,7 +125,8 @@ internal sealed class InertiaMiddleware : IMiddleware
         => HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);
 
     private static bool IsPrefetch(HttpRequest req)
-        => req.Headers["Purpose"].FirstOrDefault() == "prefetch";
+        => req.Headers["Purpose"].FirstOrDefault() == "prefetch"
+        || req.Headers["Sec-Purpose"].FirstOrDefault() == "prefetch";
 
     private static bool HasFragment(HttpResponse resp)
         => resp.Headers.Location.FirstOrDefault()?.Contains('#') == true;

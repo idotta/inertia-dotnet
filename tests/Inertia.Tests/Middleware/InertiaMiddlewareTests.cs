@@ -449,6 +449,141 @@ public class InertiaMiddlewareTests
 
             ctx.Response.StatusCode.Should().Be(302);
         }
+
+        [Fact]
+        public async Task InvokeAsync_SecPurposePrefetchRedirectWithFragment_NormalRedirect()
+        {
+            var (middleware, _, ctx) = CreateMiddleware();
+            SetInertiaHeaders(ctx);
+            ctx.Request.Headers["Sec-Purpose"] = "prefetch";
+
+            await middleware.InvokeAsync(ctx, RedirectNext(302, "/article#section"));
+
+            ctx.Response.StatusCode.Should().Be(302);
+        }
+    }
+
+    // ---- Group 7b: Validation Error Sharing ----
+    public class ValidationErrorSharing
+    {
+        [Fact]
+        public async Task InvokeAsync_ValidationErrorProvider_SharesErrorsAsAlwaysProp()
+        {
+            var errors = new Dictionary<string, object?> { ["email"] = "Required" };
+            var (middleware, factory, ctx) = CreateMiddleware(o =>
+                o.ValidationErrorProvider = (_, _) => errors);
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            var shared = factory.GetShared();
+            shared.Should().ContainKey("errors");
+            shared["errors"].Should().BeAssignableTo<AlwaysProp<IDictionary<string, object?>>>();
+        }
+
+        [Fact]
+        public async Task InvokeAsync_NoValidationErrorProvider_DoesNotShareErrors()
+        {
+            var (middleware, factory, ctx) = CreateMiddleware();
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            factory.GetShared().Should().NotContainKey("errors");
+        }
+
+        [Fact]
+        public async Task InvokeAsync_ValidationErrorProvider_PassesErrorBagHeader()
+        {
+            string? receivedBag = null;
+            var (middleware, factory, ctx) = CreateMiddleware(o =>
+                o.ValidationErrorProvider = (_, bag) =>
+                {
+                    receivedBag = bag;
+                    return new Dictionary<string, object?>();
+                });
+            ctx.Request.Headers[InertiaHeaderNames.ErrorBag] = "updateProfile";
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            // Resolve the AlwaysProp to trigger the lazy delegate
+            var alwaysProp = (AlwaysProp<IDictionary<string, object?>>)factory.GetShared()["errors"]!;
+            await alwaysProp.ResolveAsync();
+            receivedBag.Should().Be("updateProfile");
+        }
+
+        [Fact]
+        public async Task InvokeAsync_ValidationErrorProvider_NullErrorBag_WhenHeaderMissing()
+        {
+            string? receivedBag = "not-null";
+            var (middleware, factory, ctx) = CreateMiddleware(o =>
+                o.ValidationErrorProvider = (_, bag) =>
+                {
+                    receivedBag = bag;
+                    return new Dictionary<string, object?>();
+                });
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            var alwaysProp = (AlwaysProp<IDictionary<string, object?>>)factory.GetShared()["errors"]!;
+            await alwaysProp.ResolveAsync();
+            receivedBag.Should().BeNull();
+        }
+    }
+
+    // ---- Group 7c: SharedOnce Props ----
+    public class SharedOnceProps
+    {
+        [Fact]
+        public async Task InvokeAsync_SharedOncePropsProvider_WrapsPlainDelegateInOnceProp()
+        {
+            var (middleware, factory, ctx) = CreateMiddleware(o =>
+                o.SharedOncePropsProvider = (_, _) => new Dictionary<string, object?>
+                {
+                    ["token"] = (Func<string>)(() => "secret")
+                });
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            factory.GetShared()["token"].Should().BeAssignableTo<IOnceable>();
+        }
+
+        [Fact]
+        public async Task InvokeAsync_SharedOncePropsProvider_PreservesExistingOnceProp()
+        {
+            var onceProp = new OnceProp<string>(() => "existing");
+            var (middleware, factory, ctx) = CreateMiddleware(o =>
+                o.SharedOncePropsProvider = (_, _) => new Dictionary<string, object?>
+                {
+                    ["token"] = onceProp
+                });
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            factory.GetShared()["token"].Should().BeSameAs(onceProp);
+        }
+
+        [Fact]
+        public async Task InvokeAsync_SharedOncePropsProvider_WrapsStaticValueInOnceProp()
+        {
+            var (middleware, factory, ctx) = CreateMiddleware(o =>
+                o.SharedOncePropsProvider = (_, _) => new Dictionary<string, object?>
+                {
+                    ["permissions"] = new[] { "read", "write" }
+                });
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            factory.GetShared()["permissions"].Should().BeAssignableTo<IOnceable>();
+        }
+
+        [Fact]
+        public async Task InvokeAsync_NoSharedOncePropsProvider_NoOnceProps()
+        {
+            var (middleware, factory, ctx) = CreateMiddleware();
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            factory.GetShared().Should().BeEmpty();
+        }
     }
 
     // ---- Group 8: Flash Data Reflashing ----

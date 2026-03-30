@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Routing;
+using NSubstitute;
 
 namespace Inertia.Tests;
 
@@ -19,7 +20,9 @@ public class InertiaResponseTests
         bool encryptHistory = false,
         bool clearHistory = false,
         bool preserveFragment = false,
-        IDictionary<string, object?>? flash = null)
+        IDictionary<string, object?>? flash = null,
+        Func<HttpContext, string>? urlResolver = null,
+        Action<string, object?>? flashAction = null)
     {
         return new InertiaResponse(
             component: component,
@@ -33,7 +36,9 @@ public class InertiaResponseTests
             preserveFragment: preserveFragment,
             flash: flash,
             exposeSharedPropKeys: true,
-            jsonOptions: null);
+            jsonOptions: null,
+            urlResolver: urlResolver,
+            flashAction: flashAction);
     }
 
     private static (DefaultHttpContext Context, MemoryStream Body) CreateInertiaHttpContext()
@@ -513,6 +518,204 @@ public class InertiaResponseTests
             var response = CreateResponse();
 
             response.Should().BeAssignableTo<IResult>();
+        }
+    }
+
+    public class UrlResolverTests
+    {
+        [Fact]
+        public async Task Url_WhenUrlResolverIsSet_UsesResolverResult()
+        {
+            var response = CreateResponse(urlResolver: _ => "/custom/resolved");
+            var (context, body) = CreateInertiaHttpContext();
+            context.Request.Path = "/original";
+
+            await response.ExecuteAsync(context);
+
+            var json = await GetResponseBody(body);
+            using var doc = JsonDocument.Parse(json);
+            doc.RootElement.GetProperty("url").GetString().Should().Be("/custom/resolved");
+        }
+
+        [Fact]
+        public async Task Url_WhenUrlResolverIsNull_UsesDefaultLogic()
+        {
+            var response = CreateResponse(urlResolver: null);
+            var (context, body) = CreateInertiaHttpContext();
+            context.Request.Path = "/default-path";
+
+            await response.ExecuteAsync(context);
+
+            var json = await GetResponseBody(body);
+            using var doc = JsonDocument.Parse(json);
+            doc.RootElement.GetProperty("url").GetString().Should().Be("/default-path");
+        }
+    }
+
+    public class WithTests
+    {
+        [Fact]
+        public void With_StringKey_AddsToProps()
+        {
+            var response = CreateResponse();
+
+            response.With("name", "Alice");
+
+            response.Props.Should().ContainKey("name").WhoseValue.Should().Be("Alice");
+        }
+
+        [Fact]
+        public void With_Dictionary_MergesIntoProps()
+        {
+            var response = CreateResponse();
+
+            response.With(new Dictionary<string, object?> { ["a"] = 1, ["b"] = 2 });
+
+            response.Props.Should().ContainKey("a").WhoseValue.Should().Be(1);
+            response.Props.Should().ContainKey("b").WhoseValue.Should().Be(2);
+        }
+
+        [Fact]
+        public void With_Provider_AddsWithNumericKey()
+        {
+            var response = CreateResponse();
+            var provider = Substitute.For<IInertiaPropertyProvider>();
+
+            response.With(provider);
+
+            response.Props.Values.Should().Contain(provider);
+        }
+
+        [Fact]
+        public void With_ReturnsSelf()
+        {
+            var response = CreateResponse();
+
+            response.With("key", "value").Should().BeSameAs(response);
+        }
+
+        [Fact]
+        public void With_NullKey_ThrowsArgumentException()
+        {
+            var response = CreateResponse();
+
+            var act = () => response.With((string)null!, "value");
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void With_NullDictionary_ThrowsArgumentNullException()
+        {
+            var response = CreateResponse();
+
+            var act = () => response.With((IDictionary<string, object?>)null!);
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+
+        [Fact]
+        public void With_NullProvider_ThrowsArgumentNullException()
+        {
+            var response = CreateResponse();
+
+            var act = () => response.With((IInertiaPropertyProvider)null!);
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+    }
+
+    public class WithRootViewTests
+    {
+        [Fact]
+        public void WithRootView_OverridesRootView()
+        {
+            var response = CreateResponse(rootView: "~/Views/Default.cshtml");
+
+            response.WithRootView("~/Views/Custom.cshtml");
+
+            response.RootView.Should().Be("~/Views/Custom.cshtml");
+        }
+
+        [Fact]
+        public void WithRootView_ReturnsSelf()
+        {
+            var response = CreateResponse();
+
+            response.WithRootView("~/Views/Custom.cshtml").Should().BeSameAs(response);
+        }
+
+        [Fact]
+        public void WithRootView_NullValue_ThrowsArgumentException()
+        {
+            var response = CreateResponse();
+
+            var act = () => response.WithRootView(null!);
+
+            act.Should().Throw<ArgumentException>();
+        }
+    }
+
+    public class FlashFluentTests
+    {
+        [Fact]
+        public void Flash_DelegatesToFlashAction()
+        {
+            var flashed = new Dictionary<string, object?>();
+            var response = CreateResponse(flashAction: (k, v) => flashed[k] = v);
+
+            response.Flash("message", "Success!");
+
+            flashed.Should().ContainKey("message").WhoseValue.Should().Be("Success!");
+        }
+
+        [Fact]
+        public void Flash_Dictionary_DelegatesToFlashAction()
+        {
+            var flashed = new Dictionary<string, object?>();
+            var response = CreateResponse(flashAction: (k, v) => flashed[k] = v);
+
+            response.Flash(new Dictionary<string, object?> { ["a"] = 1, ["b"] = 2 });
+
+            flashed.Should().HaveCount(2);
+        }
+
+        [Fact]
+        public void Flash_ReturnsSelf()
+        {
+            var response = CreateResponse(flashAction: (_, _) => { });
+
+            response.Flash("key", "value").Should().BeSameAs(response);
+        }
+
+        [Fact]
+        public void Flash_WithoutFlashAction_ThrowsInvalidOperationException()
+        {
+            var response = CreateResponse(flashAction: null);
+
+            var act = () => response.Flash("key", "value");
+
+            act.Should().Throw<InvalidOperationException>();
+        }
+
+        [Fact]
+        public void Flash_NullKey_ThrowsArgumentException()
+        {
+            var response = CreateResponse(flashAction: (_, _) => { });
+
+            var act = () => response.Flash(null!, "value");
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Flash_NullDictionary_ThrowsArgumentNullException()
+        {
+            var response = CreateResponse(flashAction: (_, _) => { });
+
+            var act = () => response.Flash((IDictionary<string, object?>)null!);
+
+            act.Should().Throw<ArgumentNullException>();
         }
     }
 }

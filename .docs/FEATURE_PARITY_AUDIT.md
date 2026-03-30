@@ -4,25 +4,25 @@
 **Audited by**: 8 specialist sub-agents (code-architect, code-reviewer, csharp-developer, security-auditor)
 **Verified by**: dotnet-core-expert, csharp-developer, 3x code-explorer agents
 **Baseline**: 682 tests passing (610 Inertia.Tests + 72 Inertia.Testing.Tests)
-**Current**: 708 tests passing (630 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase A
+**Current**: 746 tests passing (668 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase B
 
 ---
 
 ## Executive Summary
 
 The audit identified **35 gaps** across 8 functional areas. Of these:
-- **5 Critical** — block feature parity claim or cause runtime failures (**3 fixed** in Phase A)
-- **17 Important** — significant missing features or API surface (**2 fixed** in Phase A)
+- **5 Critical** — block feature parity claim or cause runtime failures (**5 fixed** in Phases A+B)
+- **17 Important** — significant missing features or API surface (**6 fixed** in Phases A+B)
 - **13 Minor** — convenience gaps, documentation, or edge cases
 
 2 original findings were removed as false positives during verification.
 
 The most impactful remaining findings are:
-1. **No default validation error sharing** — the foundational `errors` prop is entirely absent
-2. **No `shareOnce` middleware-level mechanism** — cannot register middleware-level once-props
-3. **Missing fluent API on InertiaResponse** — `With()`, `RootView()`, `Flash()` absent
-4. **No URL resolver delegate** — custom URL resolution not possible
-5. **No Vite hot reload detection for SSR** — SSR dispatch hits wrong URL during dev
+1. **No per-key `GetShared(key)` accessor** — dot-notation shared prop lookup not exposed
+2. **No static SSR path exclusion via config** — must call `WithoutSsr()` per-request
+3. **No Vite hot reload detection for SSR** — SSR dispatch hits wrong URL during dev
+4. **Testing `Scope()` and nested assertion methods missing** — no scoped assertions
+5. **`DeriveStatusCode` only handles `BadHttpRequestException`** — limited status code derivation
 
 ---
 
@@ -31,11 +31,8 @@ The most impactful remaining findings are:
 ### ~~CRIT-01: CSR HTML format incompatible with Inertia.js v3~~ FIXED (Phase A)
 - **Resolution**: Updated `InertiaAppTagHelper`, `InertiaResponse` fallback, and `AssertableInertia.ExtractDataPageFromHtml()` to emit/parse v3 `<script data-page="{id}" type="application/json">{json}</script><div id="{id}"></div>` format. Added `Id` validation. v1/v2 fallback parser guarded to only match JSON values.
 
-### CRIT-02: No default validation error sharing
-- **PHP**: `Middleware.php:68-73` — always shares `errors` as `Inertia::always($this->resolveValidationErrors($request))`
-- **C#**: Entirely absent. `SharedPropsProvider` is null by default. `X-Inertia-Error-Bag` header defined but never consumed.
-- **Impact**: Every Inertia form example relies on `errors` prop. Without it, form validation is broken out of the box.
-- **Fix**: Add `Func<HttpContext, IDictionary<string, object?>>? ValidationErrorProvider` delegate on `InertiaOptions`. Must be PRG-aware: read flashed validation errors from TempData on redirected GET (ModelState is empty after redirect).
+### ~~CRIT-02: No default validation error sharing~~ FIXED (Phase B)
+- **Resolution**: Added `Func<HttpContext, string?, IDictionary<string, object?>>? ValidationErrorProvider` delegate to `InertiaOptions`. The `string?` parameter receives the `X-Inertia-Error-Bag` header value. Middleware wraps the result in `Prop.Always<T>()` for lazy evaluation and partial-reload inclusion under the `"errors"` key.
 
 ### ~~CRIT-03: Exception handler status code set after response body~~ FIXED (Phase A)
 - **Resolution**: Status code now set before `ExecuteAsync()`. `InertiaResponse.Execute()` guards against overwriting non-200 status. Added `HasStarted` guard (IMP-12), try/catch around delegate (IMP-11), and status code range validation (400-599 clamping).
@@ -43,43 +40,32 @@ The most impactful remaining findings are:
 ### ~~CRIT-04: `IInertiaPropertyProvider` as `Render()` props silently broken~~ FIXED (Phase A)
 - **Resolution**: Added `IInertiaPropertyProvider` switch case in both `InertiaFactory.Render()` and `InertiaExceptionResult.Render()` that wraps as `{ ["0"] = provider }` matching PHP's `[$props]`. Added input validation (`ArgumentException.ThrowIfNullOrWhiteSpace`) to `InertiaExceptionResult.Render()` and `.Redirect()`.
 
-### CRIT-05: No `shareOnce` middleware-level mechanism
-- **PHP**: `Middleware.php:80-124` — `shareOnce()` override point + wiring in `handle()`
-- **C#**: No `SharedOncePropsProvider` delegate, no middleware-level once-prop wiring
-- **Impact**: Cannot register middleware-level once-props (permissions, user settings). The `onceProps` response field cannot be populated via config.
-- **Fix**: Add `SharedOncePropsProvider` delegate to `InertiaOptions`, wire in middleware.
+### ~~CRIT-05: No `shareOnce` middleware-level mechanism~~ FIXED (Phase B)
+- **Resolution**: Added `Func<HttpContext, IServiceProvider, IDictionary<string, object?>>? SharedOncePropsProvider` delegate to `InertiaOptions`. Middleware iterates the dict: values implementing `IOnceable` are shared directly; other values/delegates are wrapped in `OnceProp<object?>`. Also added `ShareOnce<T>(string, Func<T>)` and async overload to `IInertia` (IMP-04).
 
 ---
 
 ## Important Gaps (17)
 
-### IMP-01: Missing fluent API on InertiaResponse: `With()`, `RootView()`, `Flash()`
-- **PHP**: `Response.php:124-178` — `with()`, `rootView()`, `flash()` for fluent chaining after `render()`
-- **C#**: All props/rootView/flash must be set before `Render()` call. Only `WithViewData()` is fluent on `InertiaResponse`.
-- **Fix**: Add `With(key, value)`, `RootView(string)`, `Flash(key, value)` to `InertiaResponse`. Since `WithViewData()` already mutates in place, follow the same pattern for consistency.
+### ~~IMP-01: Missing fluent API on InertiaResponse: `With()`, `WithRootView()`, `Flash()`~~ FIXED (Phase B)
+- **Resolution**: Added `With(string, object?)`, `With(IDictionary)`, `With(IInertiaPropertyProvider)`, `WithRootView(string)`, `Flash(string, object?)`, `Flash(IDictionary)` to `InertiaResponse`. All return `this` for fluent chaining. `Flash()` delegates via `Action<string, object?>` injected from `InertiaFactory`. Method named `WithRootView` (not `RootView`) to avoid C# name collision with internal property.
 
-### IMP-02: No URL resolver delegate
-- **PHP**: `ResponseFactory.php:150-163` — `resolveUrlUsing()` for custom URL resolution
-- **C#**: URL always built from `PathBase + Path + QueryString`, no override point
-- **Fix**: Add `Func<HttpContext, string>? UrlResolver` to `InertiaOptions`
+### ~~IMP-02: No URL resolver delegate~~ FIXED (Phase B)
+- **Resolution**: Added `Func<HttpContext, string>? UrlResolver` to `InertiaOptions`. Passed through `InertiaFactory` to `InertiaResponse`. When set, overrides default `PathBase + Path + QueryString` URL construction.
 
 ### ~~IMP-03: Non-zero-parameter delegates silently pass through~~ FIXED (Phase A)
 - **Resolution**: Added `InvalidOperationException` for all unresolvable delegates (params > 0 OR void return) in 3 PropsResolver locations: `ResolveCallableAsync`, `UnpackDotProps`, `EnsurePathIsTraversable`. Error messages include declaring type, method name, parameter count, and return type.
 
-### IMP-04: No `ShareOnce()` convenience method
-- **PHP**: `ResponseFactory.php:277-280` — `shareOnce(key, callable)`
-- **C#**: Must manually `Share(key, Prop.Once<T>(callback))`
-- **Fix**: Add `ShareOnce<T>(string key, Func<T> callback)` to `IInertia`
+### ~~IMP-04: No `ShareOnce()` convenience method~~ FIXED (Phase B, with CRIT-05)
+- **Resolution**: Added `ShareOnce<T>(string, Func<T>)` and `ShareOnce<T>(string, Func<Task<T>>)` to `IInertia` and `InertiaFactory`. Creates `OnceProp<T>` and shares it.
 
 ### IMP-05: No per-key `GetShared(key)` accessor
 - **PHP**: `ResponseFactory.php:114-121` — `getShared(?string $key, $default)` with dot-notation lookup
 - **C#**: Only internal `GetShared()` returning all shared props; not exposed on `IInertia`
 - **Fix**: Add `object? GetShared(string key, object? defaultValue = null)` with dot-notation traversal
 
-### IMP-06: `IsPrefetch()` missing `Sec-Purpose` header (Firefox)
-- **PHP**: Checks both `Purpose: prefetch` and `Sec-Purpose: prefetch`
-- **C#**: Only checks `Purpose: prefetch`
-- **Fix**: Add `Sec-Purpose` header check (one-line fix)
+### ~~IMP-06: `IsPrefetch()` missing `Sec-Purpose` header (Firefox)~~ FIXED (Phase B)
+- **Resolution**: Added `|| req.Headers["Sec-Purpose"].FirstOrDefault() == "prefetch"` to `IsPrefetch()` in middleware.
 
 ### IMP-07: No static SSR path exclusion via config
 - **PHP**: `Middleware.php:39` — `$withoutSsr = []` property on middleware
@@ -190,12 +176,12 @@ These are intentionally not ported:
 3. ~~**CRIT-04** — `IInertiaPropertyProvider` as `Render()` props~~
 4. ~~**IMP-03** — Non-zero-parameter AND void delegates must throw~~
 
-### Phase B: Core Feature Gaps (blocks feature parity claim)
-5. **CRIT-02** — Validation error sharing pipeline (PRG-aware, TempData-based)
-6. **CRIT-05 + IMP-04** — `shareOnce` middleware mechanism + convenience method
-7. **IMP-01** — Fluent API on InertiaResponse (`With`, `RootView`, `Flash`)
-8. **IMP-02** — URL resolver delegate
-9. **IMP-06** — `Sec-Purpose` prefetch header (one-line fix)
+### ~~Phase B: Core Feature Gaps (blocks feature parity claim)~~ COMPLETE
+5. ~~**CRIT-02** — Validation error sharing pipeline~~
+6. ~~**CRIT-05 + IMP-04** — `shareOnce` middleware mechanism + convenience method~~
+7. ~~**IMP-01** — Fluent API on InertiaResponse (`With`, `WithRootView`, `Flash`)~~
+8. ~~**IMP-02** — URL resolver delegate~~
+9. ~~**IMP-06** — `Sec-Purpose` prefetch header~~
 
 ### Phase C: Developer Experience
 10. **IMP-10** — Public `IsInertia()` extension method

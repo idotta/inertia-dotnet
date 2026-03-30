@@ -32,6 +32,18 @@ public interface IInertia
     /// <param name="provider">The property provider.</param>
     void Share(IInertiaPropertyProvider provider);
 
+    /// <summary>Creates an <see cref="OnceProp{T}"/> from the callback and shares it under the given key.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="key">The prop key.</param>
+    /// <param name="callback">A function that produces the value. Resolved once and cached on the client.</param>
+    void ShareOnce<T>(string key, Func<T> callback);
+
+    /// <summary>Creates an <see cref="OnceProp{T}"/> from the async callback and shares it under the given key.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="key">The prop key.</param>
+    /// <param name="callback">An async function that produces the value. Resolved once and cached on the client.</param>
+    void ShareOnce<T>(string key, Func<Task<T>> callback);
+
     /// <summary>Stores a flash data entry for the current request.</summary>
     /// <param name="key">The flash data key.</param>
     /// <param name="value">The flash data value.</param>

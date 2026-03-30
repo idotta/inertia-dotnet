@@ -14,7 +14,7 @@ public sealed class InertiaResponse : IActionResult, IResult
     private readonly IDictionary<string, object?> _props;
     private readonly IDictionary<string, object?> _sharedProps;
     private readonly IReadOnlyList<IInertiaPropertyProvider> _sharedProviders;
-    private readonly string _rootView;
+    private string _rootView;
     private readonly string _version;
     private readonly bool _encryptHistory;
     private readonly bool _clearHistory;
@@ -22,6 +22,8 @@ public sealed class InertiaResponse : IActionResult, IResult
     private readonly IDictionary<string, object?>? _flash;
     private readonly bool _exposeSharedPropKeys;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly Action<string, object?>? _flashAction;
+    private readonly Func<HttpContext, string>? _urlResolver;
     private Dictionary<string, object?>? _viewData;
 
     internal InertiaResponse(
@@ -36,7 +38,9 @@ public sealed class InertiaResponse : IActionResult, IResult
         bool preserveFragment,
         IDictionary<string, object?>? flash,
         bool exposeSharedPropKeys,
-        JsonSerializerOptions? jsonOptions)
+        JsonSerializerOptions? jsonOptions,
+        Func<HttpContext, string>? urlResolver = null,
+        Action<string, object?>? flashAction = null)
     {
         _component = component;
         _props = props;
@@ -50,6 +54,8 @@ public sealed class InertiaResponse : IActionResult, IResult
         _flash = flash;
         _exposeSharedPropKeys = exposeSharedPropKeys;
         _jsonOptions = jsonOptions ?? InertiaPage.DefaultJsonOptions;
+        _flashAction = flashAction;
+        _urlResolver = urlResolver;
     }
 
     /// <summary>Adds view data for the Razor view (initial page load only).</summary>
@@ -66,6 +72,78 @@ public sealed class InertiaResponse : IActionResult, IResult
         _viewData ??= [];
         foreach (var (key, value) in data)
             _viewData[key] = value;
+        return this;
+    }
+
+    /// <summary>Adds a prop to this response.</summary>
+    /// <param name="key">The prop key.</param>
+    /// <param name="value">The prop value.</param>
+    /// <returns>This response for fluent chaining.</returns>
+    public InertiaResponse With(string key, object? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        _props[key] = value;
+        return this;
+    }
+
+    /// <summary>Merges multiple props into this response.</summary>
+    /// <param name="props">A dictionary of props to merge.</param>
+    /// <returns>This response for fluent chaining.</returns>
+    public InertiaResponse With(IDictionary<string, object?> props)
+    {
+        ArgumentNullException.ThrowIfNull(props);
+        foreach (var (key, value) in props)
+            _props[key] = value;
+        return this;
+    }
+
+    /// <summary>Adds a property provider to this response.</summary>
+    /// <param name="provider">The property provider.</param>
+    /// <returns>This response for fluent chaining.</returns>
+    public InertiaResponse With(IInertiaPropertyProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+        _props[_props.Count.ToString()] = provider;
+        return this;
+    }
+
+    /// <summary>Overrides the root view for this response only.</summary>
+    /// <param name="rootView">The Razor view path.</param>
+    /// <returns>This response for fluent chaining.</returns>
+    public InertiaResponse WithRootView(string rootView)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(rootView);
+        _rootView = rootView;
+        return this;
+    }
+
+    /// <summary>Adds flash data to the current request.</summary>
+    /// <param name="key">The flash data key.</param>
+    /// <param name="value">The flash data value.</param>
+    /// <returns>This response for fluent chaining.</returns>
+    /// <exception cref="InvalidOperationException">When the response was not created through <see cref="IInertia.Render(string, object?)"/>.</exception>
+    public InertiaResponse Flash(string key, object? value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        if (_flashAction is null)
+            throw new InvalidOperationException(
+                "Flash support requires the response to be created through IInertia.Render().");
+        _flashAction(key, value);
+        return this;
+    }
+
+    /// <summary>Adds multiple flash data entries to the current request.</summary>
+    /// <param name="data">A dictionary of flash data.</param>
+    /// <returns>This response for fluent chaining.</returns>
+    /// <exception cref="InvalidOperationException">When the response was not created through <see cref="IInertia.Render(string, object?)"/>.</exception>
+    public InertiaResponse Flash(IDictionary<string, object?> data)
+    {
+        ArgumentNullException.ThrowIfNull(data);
+        if (_flashAction is null)
+            throw new InvalidOperationException(
+                "Flash support requires the response to be created through IInertia.Render().");
+        foreach (var (key, value) in data)
+            _flashAction(key, value);
         return this;
     }
 
@@ -149,7 +227,7 @@ public sealed class InertiaResponse : IActionResult, IResult
         {
             Component = _component,
             Props = resolvedProps,
-            Url = GetUrl(httpContext.Request),
+            Url = _urlResolver?.Invoke(httpContext) ?? GetUrl(httpContext.Request),
             Version = _version,
             ClearHistory = _clearHistory,
             EncryptHistory = _encryptHistory,

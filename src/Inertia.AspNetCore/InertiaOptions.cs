@@ -72,6 +72,25 @@ public sealed class InertiaOptions
     /// <summary>Delegate to provide shared props for every Inertia response. Called by the middleware.</summary>
     public Func<HttpContext, IServiceProvider, IDictionary<string, object?>>? SharedPropsProvider { get; set; }
 
+    /// <summary>Delegate to resolve the page URL for Inertia responses. When null, the URL is built from PathBase + Path + QueryString.</summary>
+    public Func<HttpContext, string>? UrlResolver { get; set; }
+
+    /// <summary>
+    /// Delegate to resolve validation errors for the current request. The returned dictionary
+    /// is shared as an <see cref="AlwaysProp{T}"/> under the <c>"errors"</c> key, ensuring it is
+    /// always included even during partial reloads.
+    /// <para>The <c>string?</c> parameter is the value of the <c>X-Inertia-Error-Bag</c> request header, or null when absent.</para>
+    /// <para>When null, no <c>"errors"</c> prop is shared automatically.</para>
+    /// </summary>
+    public Func<HttpContext, string?, IDictionary<string, object?>>? ValidationErrorProvider { get; set; }
+
+    /// <summary>
+    /// Delegate to provide props that are shared once and cached on the client across navigations.
+    /// Values that already implement <see cref="IOnceable"/> are shared directly;
+    /// other values are wrapped in <see cref="OnceProp{T}"/>.
+    /// </summary>
+    public Func<HttpContext, IServiceProvider, IDictionary<string, object?>>? SharedOncePropsProvider { get; set; }
+
     /// <summary>Delegate invoked when the client's asset version does not match the server's. Default behavior returns 409 Conflict with X-Inertia-Location.</summary>
     public Func<HttpContext, IResult>? OnVersionChange { get; set; }
 

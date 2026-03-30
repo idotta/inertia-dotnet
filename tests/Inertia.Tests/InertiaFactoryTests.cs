@@ -230,6 +230,61 @@ public class InertiaFactoryTests
         }
     }
 
+    public class ShareOnceTests
+    {
+        [Fact]
+        public void ShareOnce_SyncCallback_CreatesOnceProp()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            factory.ShareOnce<string>("token", () => "abc123");
+
+            var shared = factory.GetShared();
+            shared.Should().ContainKey("token");
+            shared["token"].Should().BeOfType<OnceProp<string>>();
+        }
+
+        [Fact]
+        public void ShareOnce_AsyncCallback_CreatesOnceProp()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            factory.ShareOnce<string>("token", () => Task.FromResult("abc123"));
+
+            factory.GetShared()["token"].Should().BeOfType<OnceProp<string>>();
+        }
+
+        [Fact]
+        public void ShareOnce_NullKey_ThrowsArgumentException()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            var act = () => factory.ShareOnce<string>(null!, () => "value");
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void ShareOnce_EmptyKey_ThrowsArgumentException()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            var act = () => factory.ShareOnce<string>("", () => "value");
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void ShareOnce_NullCallback_ThrowsArgumentNullException()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            var act = () => factory.ShareOnce<string>("key", (Func<string>)null!);
+
+            act.Should().Throw<ArgumentNullException>();
+        }
+    }
+
     public class LocationTests
     {
         [Fact]
