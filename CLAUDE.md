@@ -61,6 +61,7 @@ The implementation plan lives at `.docs/PLAN.md`. Each C# type maps to a specifi
 | `SsrState` | Scoped | Per-request SSR dispatch cache |
 | `SsrBundleDetector` | Singleton | Stateless file checks |
 | `InertiaViewRenderer` | Scoped | Renders Razor views for initial page loads |
+| `InertiaExceptionHandler` | Singleton | IExceptionHandler, stateless |
 | `IOptions<InertiaOptions>` | Singleton | Startup config |
 
 `PropsResolver` is **not** in DI — created per-response inside `InertiaResponse`, receives `IServiceProvider` from `HttpContext.RequestServices`.
@@ -80,6 +81,7 @@ MergeablePropBase  (abstract) : IMergeable
 ### Implementation Phases
 
 The project follows a phased plan (see `.docs/PLAN.md`). Current status:
+
 - **Phase 1** (constants, options, interfaces, contexts) — complete
 - **Phase 2** (property types + trait compositions) — complete
 - **Phase 3** (response factory + response) — complete
@@ -88,7 +90,8 @@ The project follows a phased plan (see `.docs/PLAN.md`). Current status:
 - **Phase 6** (SSR) — complete
 - **Phase 7** (DI registration, Tag Helpers, view rendering) — complete
 - **Phase 8** (testing package: AssertableInertia, InertiaTestExtensions, ReloadRequest) — complete
-- **Phase 9+** (porting PHP tests, exception handling) — not started
+- **Phase 9** (porting PHP integration tests) — complete
+- **Phase 10** (exception handling: InertiaExceptionHandler, InertiaExceptionResult, InertiaExceptionContext) — complete
 
 Subsequent phases build incrementally — check the plan for current status before starting work.
 

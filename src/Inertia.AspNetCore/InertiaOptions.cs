@@ -77,4 +77,10 @@ public sealed class InertiaOptions
 
     /// <summary>Delegate invoked when the response body is empty. Default behavior returns 204 No Content.</summary>
     public Func<HttpContext, IResult>? OnEmptyResponse { get; set; }
+
+    // -- Exception handling --
+
+    /// <summary>Delegate invoked when an exception occurs. Return an <see cref="InertiaExceptionResult"/> to render
+    /// an Inertia error page or redirect, or null to fall through to the default exception handler.</summary>
+    public Func<InertiaExceptionContext, InertiaExceptionResult?>? ExceptionHandler { get; set; }
 }

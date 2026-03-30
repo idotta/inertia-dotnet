@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 
@@ -44,6 +45,9 @@ public static class InertiaServiceCollectionExtensions
 
         // View rendering
         services.TryAddScoped<InertiaViewRenderer>();
+
+        // Exception handling
+        services.TryAddSingleton<IExceptionHandler, InertiaExceptionHandler>();
 
         return services;
     }

@@ -53,6 +53,9 @@ internal sealed class InertiaFactory : IInertia
         ArgumentException.ThrowIfNullOrEmpty(component);
         ArgumentNullException.ThrowIfNull(props);
 
+        if (_options.EnsurePagesExist)
+            ValidateComponentExists(component);
+
         var httpContext = _httpContextAccessor.HttpContext
             ?? throw new InvalidOperationException("HttpContext is not available.");
 
@@ -174,6 +177,16 @@ internal sealed class InertiaFactory : IInertia
     private static void SetFlashDictToTempData(ITempDataDictionary tempData, Dictionary<string, object?> data)
     {
         tempData[InertiaSessionKeys.FlashData] = JsonSerializer.Serialize(data);
+    }
+
+    private void ValidateComponentExists(string component)
+    {
+        foreach (var basePath in _options.PagePaths)
+            foreach (var ext in _options.PageExtensions)
+                if (File.Exists(Path.Combine(basePath, $"{component}.{ext}")))
+                    return;
+
+        throw new ComponentNotFoundException(component);
     }
 
     private static Dictionary<string, object?> ObjectToDictionary(object obj)

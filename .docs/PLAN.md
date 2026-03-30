@@ -475,18 +475,23 @@ Branch `v3` exists, submodule at v3.0.1, directory structure created, `dotnet bu
 - `Xunit.Assert` for test failure messages (compatible with xunit v3 test runners)
 - Supports HTML response fallback via `data-page` attribute extraction
 
-### Phase 9: Tests
+### Phase 9: Port PHP Tests ✅
 
-Port key tests from inertia-laravel, focusing on:
+- 4 new test files + additions to existing middleware tests (73 new tests, cumulative 610)
+- `InertiaResponseIntegrationTests` — end-to-end response JSON testing: deferred/merge/once props metadata, URL handling (trailing slash, query params, PathBase), history flags, shared props merging
+- `InertiaFactoryIntegrationTests` — factory→response→JSON pipeline: dot-notation unpacking, OnceProp sharing, shared props metadata tracking, flash data, IInertiaPropertyProvider expansion, component validation (EnsurePagesExist), prop type integration (defer, merge, scroll)
+- `HistoryIntegrationTests` — EncryptHistory/ClearHistory/PreserveFragment effect on rendered JSON, global config vs per-request override
+- `OncePropEdgeCaseTests` — Fresh() overrides except-once-props header, once props on partial requests
+- Source changes: `InertiaResponse.GetUrl()` includes `PathBase`, `InertiaFactory.Render()` validates component existence when `EnsurePagesExist` is enabled
 
-- PropsResolver (1066-line PHP test suite → comprehensive coverage)
-- Middleware behavior (integration tests)
-- SSR fallback
-- End-to-end rendering
+### Phase 10: Exception Handling ✅
 
-### Phase 10: Exception Handling (Optional/Later)
-
-- `ExceptionResponse.cs` adapted for ASP.NET Core `IExceptionHandler`
+- 3 new source files + 3 new test files (16 new tests, cumulative 682)
+- `InertiaExceptionContext` (public sealed) — data carrier with `Exception`, `HttpContext`, `StatusCode`
+- `InertiaExceptionResult` (public sealed) — builder pattern with static factory methods: `Render(component, props)`, `Redirect(url)`, fluent `.WithSharedData()`, `.RootView(rootView)`
+- `InertiaExceptionHandler` (internal sealed, `IExceptionHandler`) — invoked by `app.UseExceptionHandler()`, delegates to `InertiaOptions.ExceptionHandler` callback, renders Inertia component with preserved status code, supports shared data inclusion and custom root view
+- `InertiaOptions.ExceptionHandler` — `Func<InertiaExceptionContext, InertiaExceptionResult?>?` delegate, return null to fall through to default handler
+- Registered as `IExceptionHandler` in `AddInertia()`
 
 ---
 

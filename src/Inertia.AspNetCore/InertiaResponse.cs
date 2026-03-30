@@ -166,7 +166,7 @@ public sealed class InertiaResponse : IActionResult, IResult
 
     private static string GetUrl(HttpRequest request)
     {
-        var path = request.Path.Value ?? "/";
+        var path = (request.PathBase.Value ?? "") + (request.Path.Value ?? "/");
         var query = request.QueryString.Value ?? "";
         return path + query;
     }
