@@ -318,7 +318,7 @@ public class InertiaResponseTests
         }
 
         [Fact]
-        public async Task InitialLoad_ResponseContainsDataPageAttribute()
+        public async Task InitialLoad_ResponseContainsScriptAndDiv()
         {
             var response = CreateResponse(component: "Test/Page");
             var (context, body) = CreateStandardHttpContext();
@@ -326,8 +326,9 @@ public class InertiaResponseTests
             await response.ExecuteAsync(context);
 
             var html = await GetResponseBody(body);
-            html.Should().Contain("data-page=");
-            html.Should().Contain("id=\"app\"");
+            html.Should().Contain("""<script data-page="app" type="application/json">""");
+            html.Should().Contain("</script>");
+            html.Should().Contain("""<div id="app"></div>""");
         }
     }
 
@@ -358,7 +359,8 @@ public class InertiaResponseTests
 
             context.Response.ContentType.Should().Be("text/html; charset=utf-8");
             var html = await GetResponseBody(body);
-            html.Should().Contain("<div");
+            html.Should().Contain("<script");
+            html.Should().Contain("<div id=\"app\"></div>");
         }
     }
 
@@ -440,6 +442,58 @@ public class InertiaResponseTests
             var json = await GetResponseBody(body);
             using var doc = JsonDocument.Parse(json);
             doc.RootElement.GetProperty("props").GetProperty("key").GetString().Should().Be("page-value");
+        }
+    }
+
+    public class StatusCodePreservation
+    {
+        [Fact]
+        public async Task Execute_PreexistingNonOkStatusCode_NotOverwritten_InertiaRequest()
+        {
+            var response = CreateResponse();
+            var (context, body) = CreateInertiaHttpContext();
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+            await response.ExecuteAsync(context);
+
+            context.Response.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        }
+
+        [Fact]
+        public async Task Execute_PreexistingNonOkStatusCode_NotOverwritten_InitialPageLoad()
+        {
+            var response = CreateResponse();
+            var (context, body) = CreateStandardHttpContext();
+            context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+
+            await response.ExecuteAsync(context);
+
+            context.Response.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        }
+
+        [Fact]
+        public async Task Execute_DefaultStatusCodeZero_SetsTo200_InertiaRequest()
+        {
+            var response = CreateResponse();
+            var (context, body) = CreateInertiaHttpContext();
+            // DefaultHttpContext starts at 200 by default, so explicitly set to 0
+            context.Response.StatusCode = 0;
+
+            await response.ExecuteAsync(context);
+
+            context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
+        }
+
+        [Fact]
+        public async Task Execute_DefaultStatusCodeZero_SetsTo200_InitialPageLoad()
+        {
+            var response = CreateResponse();
+            var (context, body) = CreateStandardHttpContext();
+            context.Response.StatusCode = 0;
+
+            await response.ExecuteAsync(context);
+
+            context.Response.StatusCode.Should().Be(StatusCodes.Status200OK);
         }
     }
 

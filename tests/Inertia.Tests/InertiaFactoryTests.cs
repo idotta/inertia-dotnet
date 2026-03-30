@@ -217,6 +217,17 @@ public class InertiaFactoryTests
 
             act.Should().Throw<ArgumentException>();
         }
+
+        [Fact]
+        public void Render_WithIInertiaPropertyProvider_WrapsAsNumericKey()
+        {
+            var (factory, _, _) = CreateFactory();
+            var provider = Substitute.For<IInertiaPropertyProvider>();
+
+            var response = factory.Render("Test/Page", (object)provider);
+
+            response.Props.Should().ContainKey("0").WhoseValue.Should().BeSameAs(provider);
+        }
     }
 
     public class LocationTests

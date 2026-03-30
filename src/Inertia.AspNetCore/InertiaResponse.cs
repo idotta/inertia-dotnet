@@ -96,7 +96,8 @@ public sealed class InertiaResponse : IActionResult, IResult
         if (httpContext.Request.Headers.ContainsKey(InertiaHeaderNames.Inertia))
         {
             // Inertia request -- return JSON
-            httpContext.Response.StatusCode = StatusCodes.Status200OK;
+            if (httpContext.Response.StatusCode is 0 or StatusCodes.Status200OK)
+                httpContext.Response.StatusCode = StatusCodes.Status200OK;
             httpContext.Response.Headers[InertiaHeaderNames.Inertia] = "true";
             httpContext.Response.ContentType = "application/json";
             var json = page.ToJson(_jsonOptions);
@@ -112,7 +113,8 @@ public sealed class InertiaResponse : IActionResult, IResult
             if (httpContext.RequestServices?.GetService<SsrState>() is { } ssrState)
                 ssrState.SetPage(page);
 
-            httpContext.Response.StatusCode = StatusCodes.Status200OK;
+            if (httpContext.Response.StatusCode is 0 or StatusCodes.Status200OK)
+                httpContext.Response.StatusCode = StatusCodes.Status200OK;
             httpContext.Response.ContentType = "text/html; charset=utf-8";
 
             // Store view data for Razor view
@@ -133,7 +135,7 @@ public sealed class InertiaResponse : IActionResult, IResult
                 // Fallback when DI is not configured (e.g., unit tests without AddInertia)
                 var pageJson = page.ToJson(_jsonOptions);
                 await httpContext.Response.WriteAsync(
-                    $"<div id=\"app\" data-page='{System.Web.HttpUtility.HtmlAttributeEncode(pageJson)}'></div>");
+                    $"<script data-page=\"app\" type=\"application/json\">{pageJson}</script><div id=\"app\"></div>");
             }
         }
     }

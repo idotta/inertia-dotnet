@@ -42,6 +42,7 @@ internal sealed class InertiaFactory : IInertia
         {
             null => [],
             IDictionary<string, object?> d => new Dictionary<string, object?>(d),
+            IInertiaPropertyProvider provider => new Dictionary<string, object?> { ["0"] = provider },
             _ => ObjectToDictionary(props),
         };
         return Render(component, propsDict);

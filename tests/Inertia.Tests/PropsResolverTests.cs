@@ -1216,6 +1216,60 @@ public class PropsResolverTests
     }
 
     // ========================================================================
+    // Group: Delegate Validation
+    // ========================================================================
+
+    [Fact]
+    public async Task Delegate_WithParameters_ThrowsInvalidOperationException()
+    {
+        var props = new Dictionary<string, object?>
+        {
+            ["greeting"] = (Func<string, string>)(name => $"Hello, {name}"),
+        };
+
+        var act = () => ResolvePageAsync(MakeHttpContext(), props);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*delegates*");
+    }
+
+    [Fact]
+    public async Task Delegate_WithVoidReturn_ThrowsInvalidOperationException()
+    {
+        var props = new Dictionary<string, object?>
+        {
+            ["sideEffect"] = (Action)(() => { }),
+        };
+
+        var act = () => ResolvePageAsync(MakeHttpContext(), props);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*delegates*");
+    }
+
+    [Fact]
+    public async Task DottedKey_DelegateWithParameters_ThrowsInvalidOperationException()
+    {
+        var props = new Dictionary<string, object?>
+        {
+            ["auth.user"] = (Func<int, string>)(id => $"User-{id}"),
+        };
+
+        var act = () => ResolvePageAsync(MakeHttpContext(), props);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*delegates*");
+    }
+
+    [Fact]
+    public async Task Delegate_ZeroParamsNonVoidReturn_ResolvesNormally()
+    {
+        var page = await ResolvePageAsync(MakeHttpContext(), new()
+        {
+            ["greeting"] = (Func<string>)(() => "hello"),
+        });
+
+        page.Props["greeting"].Should().Be("hello");
+    }
+
+    // ========================================================================
     // Test helpers
     // ========================================================================
 

@@ -627,7 +627,86 @@ public class AssertableInertiaTests
         }
     }
 
-    // ---- Group 7: Fluent Chaining ----
+    // ---- Group 7: FromResponseAsync HTML Parsing ----
+    public class FromResponseAsyncHtmlParsing
+    {
+        private static HttpResponseMessage CreateHtmlResponse(string body)
+        {
+            var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK);
+            response.Content = new StringContent(body, System.Text.Encoding.UTF8, "text/html");
+            return response;
+        }
+
+        [Fact]
+        public async Task FromResponseAsync_V3ScriptFormat_ExtractsJson()
+        {
+            var pageJson = BuildPageJson(component: "Users/Index", url: "/users");
+            var html = $"""<script data-page="app" type="application/json">{pageJson}</script><div id="app"></div>""";
+
+            var assertable = await AssertableInertia.FromResponseAsync(CreateHtmlResponse(html));
+
+            assertable.GetComponent().Should().Be("Users/Index");
+            assertable.GetUrl().Should().Be("/users");
+        }
+
+        [Fact]
+        public async Task FromResponseAsync_V3ScriptFormatWithCustomId_ExtractsJson()
+        {
+            var pageJson = BuildPageJson(component: "Dashboard", url: "/dashboard", version: "v2");
+            var html = $"""<script data-page="my-app" type="application/json">{pageJson}</script><div id="my-app"></div>""";
+
+            var assertable = await AssertableInertia.FromResponseAsync(CreateHtmlResponse(html));
+
+            assertable.GetComponent().Should().Be("Dashboard");
+            assertable.GetVersion().Should().Be("v2");
+        }
+
+        [Fact]
+        public async Task FromResponseAsync_V3ScriptFormatWithSurroundingHtml_ExtractsJson()
+        {
+            var pageJson = BuildPageJson(component: "Home", url: "/");
+            var html = $"""
+                <!DOCTYPE html>
+                <html><head><title>Test</title></head><body>
+                <script data-page="app" type="application/json">{pageJson}</script><div id="app"></div>
+                </body></html>
+                """;
+
+            var assertable = await AssertableInertia.FromResponseAsync(CreateHtmlResponse(html));
+
+            assertable.GetComponent().Should().Be("Home");
+        }
+
+        [Fact]
+        public async Task FromResponseAsync_EmptyHtml_Fails()
+        {
+            var act = () => AssertableInertia.FromResponseAsync(CreateHtmlResponse(""));
+
+            await act.Should().ThrowAsync<Exception>().WithMessage("*Not a valid Inertia response*");
+        }
+
+        [Fact]
+        public async Task FromResponseAsync_MalformedHtml_NoScriptOrDataPage_Fails()
+        {
+            var act = () => AssertableInertia.FromResponseAsync(
+                CreateHtmlResponse("<html><body><div>Nothing here</div></body></html>"));
+
+            await act.Should().ThrowAsync<Exception>().WithMessage("*Not a valid Inertia response*");
+        }
+
+        [Fact]
+        public async Task FromResponseAsync_ScriptTagWithEmptyContent_Fails()
+        {
+            var html = """<script data-page="app" type="application/json"></script><div id="app"></div>""";
+
+            var act = () => AssertableInertia.FromResponseAsync(CreateHtmlResponse(html));
+
+            // Empty script content is not valid JSON; the parser rejects it
+            await act.Should().ThrowAsync<Exception>();
+        }
+    }
+
+    // ---- Group 8: Fluent Chaining ----
     public class FluentChaining
     {
         [Fact]

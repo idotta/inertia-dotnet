@@ -106,10 +106,10 @@ public class InertiaAppTagHelperTests
     public class CsrFallback
     {
         [Fact]
-        public async Task ProcessAsync_NoSsrResponse_OutputsDiv()
+        public async Task ProcessAsync_NoSsrResponse_OutputsScriptAndDiv()
         {
-            var (tagHelper, _) = CreateTagHelper(
-                pageJson: """{"component":"Test","url":"/test"}""");
+            var pageJson = """{"component":"Test","url":"/test"}""";
+            var (tagHelper, _) = CreateTagHelper(pageJson: pageJson);
 
             var context = CreateTagHelperContext();
             var output = CreateTagHelperOutput();
@@ -117,9 +117,10 @@ public class InertiaAppTagHelperTests
             await tagHelper.ProcessAsync(context, output);
 
             var content = output.Content.GetContent();
-            content.Should().Contain("""<div id="app" """);
-            content.Should().Contain("data-page=");
-            content.Should().Contain("</div>");
+            content.Should().Contain("""<script data-page="app" type="application/json">""");
+            content.Should().Contain(pageJson);
+            content.Should().Contain("</script>");
+            content.Should().Contain("""<div id="app"></div>""");
         }
 
         [Fact]
@@ -134,16 +135,15 @@ public class InertiaAppTagHelperTests
             await tagHelper.ProcessAsync(context, output);
 
             var content = output.Content.GetContent();
-            content.Should().Contain("data-page=");
-            // JSON should be HTML-attribute-encoded in data-page attribute
+            content.Should().Contain("""<script data-page="app" type="application/json">""");
             content.Should().Contain("Users/Index");
         }
 
         [Fact]
         public async Task ProcessAsync_CustomId_UsesCustomId()
         {
-            var (tagHelper, _) = CreateTagHelper(
-                pageJson: """{"component":"Test"}""");
+            var pageJson = """{"component":"Test"}""";
+            var (tagHelper, _) = CreateTagHelper(pageJson: pageJson);
             tagHelper.Id = "my-app";
 
             var context = CreateTagHelperContext();
@@ -151,7 +151,31 @@ public class InertiaAppTagHelperTests
 
             await tagHelper.ProcessAsync(context, output);
 
-            output.Content.GetContent().Should().Contain("""id="my-app" """);
+            var content = output.Content.GetContent();
+            content.Should().Contain("""<script data-page="my-app" type="application/json">""");
+            content.Should().Contain("""<div id="my-app"></div>""");
+        }
+
+        [Fact]
+        public async Task ProcessAsync_NullOrWhitespaceId_Throws()
+        {
+            var (tagHelper, _) = CreateTagHelper(
+                pageJson: """{"component":"Test"}""");
+
+            var context = CreateTagHelperContext();
+            var output = CreateTagHelperOutput();
+
+            tagHelper.Id = null!;
+            var actNull = () => tagHelper.ProcessAsync(context, output);
+            await actNull.Should().ThrowAsync<ArgumentException>();
+
+            tagHelper.Id = "";
+            var actEmpty = () => tagHelper.ProcessAsync(context, output);
+            await actEmpty.Should().ThrowAsync<ArgumentException>();
+
+            tagHelper.Id = "   ";
+            var actWhitespace = () => tagHelper.ProcessAsync(context, output);
+            await actWhitespace.Should().ThrowAsync<ArgumentException>();
         }
     }
 
@@ -216,9 +240,10 @@ public class InertiaAppTagHelperTests
 
             await tagHelper.ProcessAsync(context, output);
 
-            // Should fall back to CSR (div), not SSR body
+            // Should fall back to CSR (script + div), not SSR body
             var content = output.Content.GetContent();
-            content.Should().Contain("""<div id="app" """);
+            content.Should().Contain("""<script data-page="app" type="application/json">""");
+            content.Should().Contain("""<div id="app"></div>""");
             content.Should().NotBe("body");
             await gateway.DidNotReceive().DispatchAsync(Arg.Any<InertiaPage>(), Arg.Any<CancellationToken>());
         }

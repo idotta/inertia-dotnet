@@ -220,6 +220,15 @@ internal sealed class PropsResolver
             return result;
         }
 
+        if (value is Delegate unresolvable)
+        {
+            var method = unresolvable.Method;
+            throw new InvalidOperationException(
+                $"Inertia props do not support delegates with parameters or void return types. " +
+                $"Found: {method.DeclaringType?.Name ?? "?"}.{method.Name} " +
+                $"with {method.GetParameters().Length} parameter(s) and return type {method.ReturnType.Name}.");
+        }
+
         return value;
     }
 
@@ -458,6 +467,11 @@ internal sealed class PropsResolver
             {
                 value = d.DynamicInvoke();
             }
+            else if (value is Delegate)
+            {
+                throw new InvalidOperationException(
+                    $"Inertia props do not support delegates with parameters or void return types for dotted key '{key}'.");
+            }
 
             EnsurePathIsTraversable(result, key);
             SetNestedValue(result, key, value);
@@ -490,6 +504,11 @@ internal sealed class PropsResolver
             {
                 existing = d.DynamicInvoke();
                 current[segment] = existing;
+            }
+            else if (existing is Delegate)
+            {
+                throw new InvalidOperationException(
+                    $"Inertia props do not support delegates with parameters or void return types at path segment '{segment}'.");
             }
 
             if (existing is not IDictionary<string, object?> dict)

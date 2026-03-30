@@ -7,7 +7,7 @@ namespace Inertia.AspNetCore;
 
 /// <summary>
 /// Renders the Inertia application container. When SSR is available, outputs the
-/// pre-rendered HTML body. Otherwise, renders a div with page data for client-side rendering.
+/// pre-rendered HTML body. Otherwise, renders a script tag with page JSON and a div for client-side rendering.
 /// </summary>
 /// <remarks>
 /// Usage in Razor view: <c>&lt;inertia-app&gt;&lt;/inertia-app&gt;</c>
@@ -27,6 +27,8 @@ public sealed class InertiaAppTagHelper : TagHelper
     /// <inheritdoc />
     public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(Id);
+
         output.TagName = null; // Suppress the <inertia-app> wrapper tag
 
         var httpContext = ViewContext.HttpContext;
@@ -52,9 +54,11 @@ public sealed class InertiaAppTagHelper : TagHelper
         }
         else
         {
-            // CSR fallback: div with page data attribute
+            // CSR fallback: script tag with page JSON + empty div container
+            // JSON inside <script type="application/json"> does not need HTML encoding.
+            // System.Text.Json escapes </>  to \u003C/\u003E, preventing </script> injection.
             output.Content.SetHtmlContent(
-                $"""<div id="{Id}" data-page="{System.Web.HttpUtility.HtmlAttributeEncode(pageJson)}"></div>""");
+                $"""<script data-page="{Id}" type="application/json">{pageJson}</script><div id="{Id}"></div>""");
         }
     }
 }

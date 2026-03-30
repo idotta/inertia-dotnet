@@ -27,7 +27,12 @@ internal sealed class InertiaExceptionHandler : IExceptionHandler
         if (_options.ExceptionHandler is null)
             return false;
 
+        if (httpContext.Response.HasStarted)
+            return false;
+
         var statusCode = DeriveStatusCode(exception);
+        if (statusCode < 400 || statusCode > 599)
+            statusCode = StatusCodes.Status500InternalServerError;
 
         var context = new InertiaExceptionContext
         {
@@ -36,7 +41,16 @@ internal sealed class InertiaExceptionHandler : IExceptionHandler
             StatusCode = statusCode,
         };
 
-        var result = _options.ExceptionHandler(context);
+        InertiaExceptionResult? result;
+        try
+        {
+            result = _options.ExceptionHandler(context);
+        }
+        catch
+        {
+            return false;
+        }
+
         if (result is null)
             return false;
 
@@ -56,9 +70,9 @@ internal sealed class InertiaExceptionHandler : IExceptionHandler
             if (result.CustomRootView is not null && inertia is InertiaFactory factory)
                 factory.SetRootView(result.CustomRootView);
 
+            httpContext.Response.StatusCode = statusCode;
             var response = inertia.Render(result.Component, result.Props ?? new Dictionary<string, object?>());
             await response.ExecuteAsync(httpContext);
-            httpContext.Response.StatusCode = statusCode;
             return true;
         }
 

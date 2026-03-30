@@ -258,6 +258,34 @@ public class InertiaFactoryIntegrationTests
     public class PropertyProvider
     {
         [Fact]
+        public async Task Render_WithProviderAsObjectProps_ExpandsProperties()
+        {
+            var (factory, ctx, _) = CreateFactory();
+            var provider = new TestPropertyProvider(new Dictionary<string, object?>
+            {
+                ["auth"] = new Dictionary<string, object?> { ["user"] = "Jonathan" },
+                ["settings"] = "dark",
+            });
+
+            // Cast to object to exercise the Render(string, object?) overload
+            var response = factory.Render("Test/Component", (object)provider);
+
+            ctx.Request.Headers[InertiaHeaderNames.Inertia] = "true";
+            ctx.Request.Path = "/test";
+            var body = new MemoryStream();
+            ctx.Response.Body = body;
+            await response.ExecuteAsync(ctx);
+
+            body.Position = 0;
+            using var reader = new StreamReader(body);
+            var json = await reader.ReadToEndAsync();
+            var page = JsonDocument.Parse(json).RootElement;
+
+            page.GetProperty("props").GetProperty("auth").GetProperty("user").GetString().Should().Be("Jonathan");
+            page.GetProperty("props").GetProperty("settings").GetString().Should().Be("dark");
+        }
+
+        [Fact]
         public async Task Render_WithProviderAsProps_ExpandsProperties()
         {
             var (factory, ctx, _) = CreateFactory();

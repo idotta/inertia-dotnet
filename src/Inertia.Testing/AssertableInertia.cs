@@ -469,7 +469,33 @@ public sealed class AssertableInertia
 
     private static string? ExtractDataPageFromHtml(string html)
     {
-        // Match data-page="..." (double-quoted, HTML-attribute-encoded)
+        // v3 format: <script ... type="application/json">...JSON...</script>
+        var scriptMarker = "<script";
+        var scriptStart = html.IndexOf(scriptMarker, StringComparison.OrdinalIgnoreCase);
+        if (scriptStart >= 0)
+        {
+            var typeMarker = "type=\"application/json\"";
+            var tagEnd = html.IndexOf('>', scriptStart);
+            if (tagEnd > scriptStart)
+            {
+                var tagContent = html[scriptStart..tagEnd];
+                if (tagContent.Contains(typeMarker, StringComparison.OrdinalIgnoreCase))
+                {
+                    var jsonStart = tagEnd + 1;
+                    var scriptClose = html.IndexOf("</script>", jsonStart, StringComparison.OrdinalIgnoreCase);
+                    if (scriptClose > jsonStart)
+                    {
+                        var json = html[jsonStart..scriptClose];
+                        if (!string.IsNullOrEmpty(json))
+                            return json;
+                    }
+                }
+            }
+        }
+
+        // v1/v2 fallback: data-page="..." (double-quoted, HTML-attribute-encoded)
+        // Only match values that look like JSON (start with '{') to avoid matching
+        // the v3 <script data-page="app"> attribute which contains an element ID.
         var marker = "data-page=\"";
         var start = html.IndexOf(marker, StringComparison.Ordinal);
         if (start >= 0)
@@ -479,11 +505,13 @@ public sealed class AssertableInertia
             if (end > start)
             {
                 var encoded = html[start..end];
-                return WebUtility.HtmlDecode(encoded);
+                var decoded = WebUtility.HtmlDecode(encoded);
+                if (decoded.StartsWith('{'))
+                    return decoded;
             }
         }
 
-        // Match data-page='...' (single-quoted, HTML-attribute-encoded)
+        // v1/v2 fallback: data-page='...' (single-quoted, HTML-attribute-encoded)
         marker = "data-page='";
         start = html.IndexOf(marker, StringComparison.Ordinal);
         if (start >= 0)
@@ -493,7 +521,9 @@ public sealed class AssertableInertia
             if (end > start)
             {
                 var encoded = html[start..end];
-                return WebUtility.HtmlDecode(encoded);
+                var decoded = WebUtility.HtmlDecode(encoded);
+                if (decoded.StartsWith('{'))
+                    return decoded;
             }
         }
 

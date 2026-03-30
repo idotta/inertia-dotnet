@@ -117,5 +117,5 @@ Subsequent phases build incrementally — check the plan for current status befo
 - Prop types expose only `ResolveAsync()` — no sync `Resolve()`. PropsResolver (Phase 4) is async, so this is the only resolution path
 - `InertiaPage.DefaultJsonOptions` includes `RuntimeTypeJsonConverter` for polymorphic `object?` serialization
 - `InertiaFactory` is `internal sealed` — consumers interact via `IInertia` interface
-- Initial page load writes minimal `<div id="app" data-page='...'>` HTML — full Razor view rendering deferred to Phase 7
+- Initial page load writes minimal `<script data-page="app" type="application/json">{json}</script><div id="app"></div>` HTML — full Razor view rendering deferred to Phase 7
 - XML doc comments on all public API surface

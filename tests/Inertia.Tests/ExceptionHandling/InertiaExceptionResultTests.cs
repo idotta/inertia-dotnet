@@ -5,6 +5,16 @@ namespace Inertia.Tests;
 
 public class InertiaExceptionResultTests
 {
+    private sealed class TestPropertyProvider : IInertiaPropertyProvider
+    {
+        private readonly Dictionary<string, object?> _props;
+
+        public TestPropertyProvider(Dictionary<string, object?> props) => _props = props;
+
+        public IEnumerable<KeyValuePair<string, object?>> ToInertiaProperties(RenderContext context)
+            => _props;
+    }
+
     public class Render
     {
         [Fact]
@@ -27,6 +37,45 @@ public class InertiaExceptionResultTests
             result.Props!["status"].Should().Be(404);
             result.Props!["message"].Should().Be("Not Found");
         }
+
+        [Fact]
+        public void Render_NullComponent_ThrowsArgumentException()
+        {
+            var act = () => InertiaExceptionResult.Render(null!);
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Render_EmptyComponent_ThrowsArgumentException()
+        {
+            var act = () => InertiaExceptionResult.Render("");
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Render_WhitespaceComponent_ThrowsArgumentException()
+        {
+            var act = () => InertiaExceptionResult.Render("   ");
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Render_WithPropertyProvider_WrapsAsNumericKey()
+        {
+            var provider = new TestPropertyProvider(new Dictionary<string, object?>
+            {
+                ["auth"] = "data",
+                ["errors"] = new Dictionary<string, object?>(),
+            });
+
+            var result = InertiaExceptionResult.Render("Error", (object)provider);
+
+            result.Props.Should().ContainKey("0");
+            result.Props!["0"].Should().BeSameAs(provider);
+        }
     }
 
     public class RedirectTests
@@ -38,6 +87,22 @@ public class InertiaExceptionResultTests
 
             result.RedirectUrl.Should().Be("/login");
             result.Component.Should().BeNull();
+        }
+
+        [Fact]
+        public void Redirect_NullUrl_ThrowsArgumentException()
+        {
+            var act = () => InertiaExceptionResult.Redirect(null!);
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void Redirect_EmptyUrl_ThrowsArgumentException()
+        {
+            var act = () => InertiaExceptionResult.Redirect("");
+
+            act.Should().Throw<ArgumentException>();
         }
     }
 

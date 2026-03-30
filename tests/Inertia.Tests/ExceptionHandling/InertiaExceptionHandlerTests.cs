@@ -180,6 +180,65 @@ public class InertiaExceptionHandlerTests
         }
     }
 
+    public class SafetyGuards
+    {
+        [Fact]
+        public async Task TryHandleAsync_ResponseHasStarted_ReturnsFalse()
+        {
+            var options = new InertiaOptions
+            {
+                ExceptionHandler = _ => InertiaExceptionResult.Render("Error"),
+            };
+
+            var httpContext = Substitute.For<HttpContext>();
+            var response = Substitute.For<HttpResponse>();
+            response.HasStarted.Returns(true);
+            httpContext.Response.Returns(response);
+
+            var handler = new InertiaExceptionHandler(Options.Create(options));
+
+            var result = await handler.TryHandleAsync(httpContext, new Exception("fail"), default);
+
+            result.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task TryHandleAsync_ExceptionHandlerDelegateThrows_ReturnsFalse()
+        {
+            var (handler, ctx) = CreateHandler(o =>
+                o.ExceptionHandler = _ => throw new InvalidOperationException("delegate exploded"));
+
+            var result = await handler.TryHandleAsync(ctx, new Exception("fail"), default);
+
+            result.Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task TryHandleAsync_InvalidDerivedStatusCode_FallsBackTo500()
+        {
+            // BadHttpRequestException uses a private constructor; use reflection to create one
+            // with an out-of-range status code.
+            var exception = CreateBadHttpRequestException(200);
+
+            var (handler, ctx) = CreateHandler(o =>
+                o.ExceptionHandler = ec => InertiaExceptionResult.Render("Error",
+                    new Dictionary<string, object?> { ["status"] = ec.StatusCode }));
+
+            await handler.TryHandleAsync(ctx, exception, default);
+
+            ctx.Response.StatusCode.Should().Be(500);
+
+            var json = await GetResponseBody(ctx);
+            var props = JsonDocument.Parse(json).RootElement.GetProperty("props");
+            props.GetProperty("status").GetInt32().Should().Be(500);
+        }
+
+        private static BadHttpRequestException CreateBadHttpRequestException(int statusCode)
+        {
+            return new BadHttpRequestException("test", statusCode);
+        }
+    }
+
     public class CustomRootView
     {
         [Fact]
