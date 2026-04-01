@@ -4,7 +4,7 @@
 **Audited by**: 8 specialist sub-agents (code-architect, code-reviewer, csharp-developer, security-auditor)
 **Verified by**: dotnet-core-expert, csharp-developer, 3x code-explorer agents
 **Baseline**: 682 tests passing (610 Inertia.Tests + 72 Inertia.Testing.Tests)
-**Current**: 746 tests passing (668 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase B
+**Current**: 763 tests passing (685 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase C
 
 ---
 
@@ -12,17 +12,17 @@
 
 The audit identified **35 gaps** across 8 functional areas. Of these:
 - **5 Critical** — block feature parity claim or cause runtime failures (**5 fixed** in Phases A+B)
-- **17 Important** — significant missing features or API surface (**6 fixed** in Phases A+B)
+- **17 Important** — significant missing features or API surface (**9 fixed** in Phases A+B+C)
 - **13 Minor** — convenience gaps, documentation, or edge cases
 
 2 original findings were removed as false positives during verification.
 
 The most impactful remaining findings are:
-1. **No per-key `GetShared(key)` accessor** — dot-notation shared prop lookup not exposed
-2. **No static SSR path exclusion via config** — must call `WithoutSsr()` per-request
-3. **No Vite hot reload detection for SSR** — SSR dispatch hits wrong URL during dev
-4. **Testing `Scope()` and nested assertion methods missing** — no scoped assertions
-5. **`DeriveStatusCode` only handles `BadHttpRequestException`** — limited status code derivation
+1. **No Vite hot reload detection for SSR** — SSR dispatch hits wrong URL during dev
+2. **`DeriveStatusCode` only handles `BadHttpRequestException`** — limited status code derivation
+3. **Testing `Scope()` and nested assertion methods missing** — no scoped assertions
+4. **Testing `WhereNot`, `WhereType`, `WhereContains`, `HasAny` missing** — incomplete assertion methods
+5. **`SsrRenderFailed` event notification missing** — no consumer-accessible SSR failure event
 
 ---
 
@@ -59,18 +59,14 @@ The most impactful remaining findings are:
 ### ~~IMP-04: No `ShareOnce()` convenience method~~ FIXED (Phase B, with CRIT-05)
 - **Resolution**: Added `ShareOnce<T>(string, Func<T>)` and `ShareOnce<T>(string, Func<Task<T>>)` to `IInertia` and `InertiaFactory`. Creates `OnceProp<T>` and shares it.
 
-### IMP-05: No per-key `GetShared(key)` accessor
-- **PHP**: `ResponseFactory.php:114-121` — `getShared(?string $key, $default)` with dot-notation lookup
-- **C#**: Only internal `GetShared()` returning all shared props; not exposed on `IInertia`
-- **Fix**: Add `object? GetShared(string key, object? defaultValue = null)` with dot-notation traversal
+### ~~IMP-05: No per-key `GetShared(key)` accessor~~ FIXED (Phase C)
+- **Resolution**: Added `object? GetShared(string key, object? defaultValue = null)` to `IInertia` and `InertiaFactory`. Supports dot-notation traversal of nested `IDictionary<string, object?>` values (e.g., `GetShared("user.profile.name")`). Returns `defaultValue` when key or intermediate path is missing.
 
 ### ~~IMP-06: `IsPrefetch()` missing `Sec-Purpose` header (Firefox)~~ FIXED (Phase B)
 - **Resolution**: Added `|| req.Headers["Sec-Purpose"].FirstOrDefault() == "prefetch"` to `IsPrefetch()` in middleware.
 
-### IMP-07: No static SSR path exclusion via config
-- **PHP**: `Middleware.php:39` — `$withoutSsr = []` property on middleware
-- **C#**: Must call `IInertia.WithoutSsr()` per-request in action code
-- **Fix**: Add `string[]? SsrExcludePaths` to `InertiaOptions`, wire in middleware
+### ~~IMP-07: No static SSR path exclusion via config~~ FIXED (Phase C)
+- **Resolution**: Added `string[]? SsrExcludePaths` to `InertiaOptions`. Middleware applies static exclusions to scoped `SsrState` via `GetService<SsrState>()` (null-safe). Supports exact match and trailing wildcard (e.g., `"/api/*"`). Additive with per-request `WithoutSsr()`.
 
 ### IMP-08: No Vite hot reload detection for SSR
 - **PHP**: `HttpGateway.php:36-44` — detects `public/hot` file, uses hot URL + `/__inertia_ssr` for SSR dispatch
@@ -83,10 +79,8 @@ The most impactful remaining findings are:
 - **C#**: Only `BadHttpRequestException.StatusCode`, everything else → 500
 - **Fix**: Also check `HttpRequestException.StatusCode` (.NET 5+). Consider adding `InertiaHttpException` for `abort()` equivalent.
 
-### IMP-10: No public `HttpRequest.IsInertia()` extension method
-- **PHP**: `$request->inertia()` macro registered in ServiceProvider
-- **C#**: Internal `IsInertiaRequest` check only in middleware (private static)
-- **Fix**: Add `public static bool IsInertia(this HttpRequest request)` extension method
+### ~~IMP-10: No public `HttpRequest.IsInertia()` extension method~~ FIXED (Phase C)
+- **Resolution**: Added `InertiaHttpRequestExtensions.IsInertia(this HttpRequest)` public extension method. Middleware's `IsInertiaRequest` refactored to delegate to it.
 
 ### ~~IMP-11: Exception handler delegate invoked without try/catch~~ FIXED (Phase A, with CRIT-03)
 - **Resolution**: Delegate invocation wrapped in try/catch; returns `false` on exception to let default handler take over.
@@ -183,10 +177,10 @@ These are intentionally not ported:
 8. ~~**IMP-02** — URL resolver delegate~~
 9. ~~**IMP-06** — `Sec-Purpose` prefetch header~~
 
-### Phase C: Developer Experience
-10. **IMP-10** — Public `IsInertia()` extension method
-11. **IMP-05** — Per-key `GetShared(key)` accessor
-12. **IMP-07** — Static SSR path exclusion config
+### ~~Phase C: Developer Experience~~ COMPLETE
+10. ~~**IMP-10** — Public `IsInertia()` extension method~~
+11. ~~**IMP-05** — Per-key `GetShared(key)` accessor~~
+12. ~~**IMP-07** — Static SSR path exclusion config~~
 
 ### Phase D: SSR & Error Handling
 13. **IMP-08** — Vite hot reload detection

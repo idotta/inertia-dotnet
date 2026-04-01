@@ -65,6 +65,13 @@ internal sealed class InertiaMiddleware : IMiddleware
         if (_options.RootViewProvider is { } rvp)
             factory.SetRootView(rvp(context));
 
+        // 3b. Apply static SSR path exclusions from config
+        if (_options.SsrExcludePaths is { Length: > 0 } ssrExcludePaths)
+        {
+            var ssrState = context.RequestServices.GetService<SsrState>();
+            ssrState?.ExcludePaths(ssrExcludePaths);
+        }
+
         // 4. Version mismatch — GET + Inertia only — SHORT CIRCUIT
         if (isInertia && HttpMethods.IsGet(context.Request.Method))
         {
@@ -119,7 +126,7 @@ internal sealed class InertiaMiddleware : IMiddleware
         => (InertiaFactory)ctx.RequestServices.GetRequiredService<IInertia>();
 
     private static bool IsInertiaRequest(HttpRequest req)
-        => req.Headers.ContainsKey(InertiaHeaderNames.Inertia);
+        => req.IsInertia();
 
     private static bool IsStateChangingMethod(string method)
         => HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);

@@ -32,6 +32,11 @@ public interface IInertia
     /// <param name="provider">The property provider.</param>
     void Share(IInertiaPropertyProvider provider);
 
+    /// <summary>Returns a single shared prop by key, with optional dot-notation traversal for nested values.</summary>
+    /// <param name="key">The prop key. Supports dot-notation (e.g., "user.profile.name") for nested lookups.</param>
+    /// <param name="defaultValue">The value to return if the key is not found.</param>
+    object? GetShared(string key, object? defaultValue = null);
+
     /// <summary>Creates an <see cref="OnceProp{T}"/> from the callback and shares it under the given key.</summary>
     /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
     /// <param name="key">The prop key.</param>

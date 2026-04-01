@@ -285,6 +285,98 @@ public class InertiaFactoryTests
         }
     }
 
+    public class GetSharedByKeyTests
+    {
+        [Fact]
+        public void GetShared_ExistingKey_ReturnsValue()
+        {
+            var (factory, _, _) = CreateFactory();
+            factory.Share("name", "Alice");
+
+            factory.GetShared("name").Should().Be("Alice");
+        }
+
+        [Fact]
+        public void GetShared_MissingKey_ReturnsNull()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            factory.GetShared("missing").Should().BeNull();
+        }
+
+        [Fact]
+        public void GetShared_MissingKey_ReturnsDefaultValue()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            factory.GetShared("missing", "fallback").Should().Be("fallback");
+        }
+
+        [Fact]
+        public void GetShared_DotNotation_TraversesNestedDictionaries()
+        {
+            var (factory, _, _) = CreateFactory();
+            factory.Share("user", new Dictionary<string, object?>
+            {
+                ["profile"] = new Dictionary<string, object?>
+                {
+                    ["name"] = "Alice"
+                }
+            });
+
+            factory.GetShared("user.profile.name").Should().Be("Alice");
+        }
+
+        [Fact]
+        public void GetShared_DotNotation_MissingIntermediate_ReturnsDefault()
+        {
+            var (factory, _, _) = CreateFactory();
+            factory.Share("user", "not-a-dict");
+
+            factory.GetShared("user.profile.name", "fallback").Should().Be("fallback");
+        }
+
+        [Fact]
+        public void GetShared_DotNotation_MissingLeaf_ReturnsDefault()
+        {
+            var (factory, _, _) = CreateFactory();
+            factory.Share("user", new Dictionary<string, object?>
+            {
+                ["profile"] = new Dictionary<string, object?>()
+            });
+
+            factory.GetShared("user.profile.name", "default").Should().Be("default");
+        }
+
+        [Fact]
+        public void GetShared_DotNotation_MissingRoot_ReturnsDefault()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            factory.GetShared("deep.nested.key", "fallback").Should().Be("fallback");
+        }
+
+        [Fact]
+        public void GetShared_NullKey_ThrowsArgumentException()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            var act = () => factory.GetShared(null!);
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void GetShared_EmptyKey_ThrowsArgumentException()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            var act = () => factory.GetShared("");
+
+            act.Should().Throw<ArgumentException>();
+        }
+    }
+
     public class LocationTests
     {
         [Fact]

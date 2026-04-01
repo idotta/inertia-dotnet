@@ -82,6 +82,12 @@ public class InertiaOptionsTests
         }
 
         [Fact]
+        public void SsrExcludePaths_DefaultsToNull()
+        {
+            _options.SsrExcludePaths.Should().BeNull();
+        }
+
+        [Fact]
         public void EnsurePagesExist_DefaultsToFalse()
         {
             _options.EnsurePagesExist.Should().BeFalse();

@@ -155,6 +155,32 @@ internal sealed class InertiaFactory : IInertia
 
     internal IDictionary<string, object?> GetShared() => new Dictionary<string, object?>(_sharedProps);
 
+    /// <inheritdoc />
+    public object? GetShared(string key, object? defaultValue = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+
+        if (!key.Contains('.'))
+            return _sharedProps.TryGetValue(key, out var value) ? value : defaultValue;
+
+        return GetNestedValue(_sharedProps, key, defaultValue);
+    }
+
+    private static object? GetNestedValue(IDictionary<string, object?> root, string dotKey, object? defaultValue)
+    {
+        var segments = dotKey.Split('.');
+        IDictionary<string, object?> current = root;
+
+        for (var i = 0; i < segments.Length - 1; i++)
+        {
+            if (!current.TryGetValue(segments[i], out var next) || next is not IDictionary<string, object?> dict)
+                return defaultValue;
+            current = dict;
+        }
+
+        return current.TryGetValue(segments[^1], out var result) ? result : defaultValue;
+    }
+
     internal IReadOnlyList<IInertiaPropertyProvider> GetSharedProviders() => _sharedProviders;
 
     internal void FlushShared()

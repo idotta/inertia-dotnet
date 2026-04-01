@@ -40,6 +40,9 @@ public sealed class InertiaOptions
     /// <summary>When enabled, SSR rendering failures throw an exception instead of falling back to client-side rendering.</summary>
     public bool SsrThrowOnError { get; set; }
 
+    /// <summary>Paths to always exclude from server-side rendering (e.g., "/admin", "/api/*"). Supports exact match and trailing wildcard.</summary>
+    public string[]? SsrExcludePaths { get; set; }
+
     // -- Pages --
 
     /// <summary>When enabled, component names are validated against the file system during rendering.</summary>

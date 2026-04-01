@@ -586,6 +586,57 @@ public class InertiaMiddlewareTests
         }
     }
 
+    // ---- Group 7d: SSR Path Exclusion ----
+    public class SsrPathExclusion
+    {
+        [Fact]
+        public async Task InvokeAsync_SsrExcludePaths_AppliesExclusionsToSsrState()
+        {
+            var (middleware, factory, ctx) = CreateMiddleware(o =>
+                o.SsrExcludePaths = ["/admin", "/api/*"]);
+            var ssrState = new SsrState(Substitute.For<ISsrGateway>());
+            var services = new ServiceCollection();
+            services.AddSingleton<IInertia>(factory);
+            services.AddSingleton<ILoggerFactory>(NullLoggerFactory.Instance);
+            services.AddSingleton(ssrState);
+            ctx.RequestServices = services.BuildServiceProvider();
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            ssrState.IsPathExcluded("/admin").Should().BeTrue();
+            ssrState.IsPathExcluded("/api/users").Should().BeTrue();
+            ssrState.IsPathExcluded("/home").Should().BeFalse();
+        }
+
+        [Fact]
+        public async Task InvokeAsync_NullSsrExcludePaths_DoesNotThrow()
+        {
+            var (middleware, _, ctx) = CreateMiddleware(o =>
+                o.SsrExcludePaths = null);
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+        }
+
+        [Fact]
+        public async Task InvokeAsync_EmptySsrExcludePaths_DoesNotThrow()
+        {
+            var (middleware, _, ctx) = CreateMiddleware(o =>
+                o.SsrExcludePaths = []);
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+        }
+
+        [Fact]
+        public async Task InvokeAsync_SsrExcludePaths_NoSsrState_DoesNotThrow()
+        {
+            // Default CreateMiddleware doesn't register SsrState
+            var (middleware, _, ctx) = CreateMiddleware(o =>
+                o.SsrExcludePaths = ["/admin"]);
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+        }
+    }
+
     // ---- Group 8: Flash Data Reflashing ----
     public class FlashDataReflashing
     {
