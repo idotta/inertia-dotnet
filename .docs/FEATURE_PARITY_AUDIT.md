@@ -1,8 +1,9 @@
-# Feature-Parity Audit: inertia-laravel v3.0.1 vs inertia-dotnet
+# Feature-Parity Audit: Inertia.js v3 Protocol + inertia-laravel v3.0.1 vs inertia-dotnet
 
-**Date**: 2026-03-30
+**Date**: 2026-03-31
 **Audited by**: 8 specialist sub-agents (code-architect, code-reviewer, csharp-developer, security-auditor)
 **Verified by**: dotnet-core-expert, csharp-developer, 3x code-explorer agents
+**Cross-referenced against**: Inertia.js v3 protocol documentation (inertiajs.com/docs/v3/)
 **Baseline**: 682 tests passing (610 Inertia.Tests + 72 Inertia.Testing.Tests)
 **Current**: 788 tests passing (710 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase D
 
@@ -10,18 +11,20 @@
 
 ## Executive Summary
 
-The audit identified **35 gaps** across 8 functional areas. Of these:
+The audit identified **38 gaps** across 8 functional areas, plus **1 protocol extension**. Of these:
 - **5 Critical** — block feature parity claim or cause runtime failures (**5 fixed** in Phases A+B)
-- **17 Important** — significant missing features or API surface (**12 fixed** in Phases A+B+C+D)
-- **13 Minor** — convenience gaps, documentation, or edge cases (**1 fixed** in Phase D)
+- **19 Important** — significant missing features or API surface (**12 fixed** in Phases A+B+C+D)
+- **14 Minor** — convenience gaps, documentation, or edge cases (**1 fixed** in Phase D)
 
 2 original findings were removed as false positives during verification.
+1 protocol-level feature (Precognition) identified — beyond adapter scope, tracked separately.
 
 The most impactful remaining findings are:
 1. **Testing `Scope()` and nested assertion methods missing** — no scoped assertions
 2. **Testing `WhereNot`, `WhereType`, `WhereContains`, `HasAny` missing** — incomplete assertion methods
 3. **Testing async `AssertInertia` overload missing** — no `Func<AssertableInertia, Task>` overload
 4. **Component file existence check missing from `AssertableInertia`** — `shouldExist` not wired
+5. **`FlushShared()` and `GetVersion()` not exposed on `IInertia`** — internal methods need public exposure
 
 ---
 
@@ -44,7 +47,7 @@ The most impactful remaining findings are:
 
 ---
 
-## Important Gaps (17)
+## Important Gaps (19)
 
 ### ~~IMP-01: Missing fluent API on InertiaResponse: `With()`, `WithRootView()`, `Flash()`~~ FIXED (Phase B)
 - **Resolution**: Added `With(string, object?)`, `With(IDictionary)`, `With(IInertiaPropertyProvider)`, `WithRootView(string)`, `Flash(string, object?)`, `Flash(IDictionary)` to `InertiaResponse`. All return `this` for fluent chaining. `Flash()` delegates via `Action<string, object?>` injected from `InertiaFactory`. Method named `WithRootView` (not `RootView`) to avoid C# name collision with internal property.
@@ -106,9 +109,21 @@ The most impactful remaining findings are:
 ### ~~IMP-17: `SsrRenderFailed` event notification missing~~ FIXED (Phase D)
 - **Resolution**: Added `Action<SsrRenderFailedContext>? OnSsrRenderFailed` delegate to `InertiaOptions`. `SsrRenderFailedContext` sealed class carries all 7 PHP fields (Page, Error, ErrorType, Hint, BrowserApi, Stack, SourceLocation) plus `Exception?`. Callback invoked before `ILogger` warning and optional throw. Callback exceptions are caught and logged at `LogError` level to protect CSR fallback.
 
+### IMP-18: `FlushShared()` not exposed on `IInertia` interface
+- **PHP**: `Inertia::flushShared()` is public on the `ResponseFactory`
+- **C#**: `InertiaFactory.FlushShared()` exists (`InertiaFactory.cs:186`) but is `internal`
+- **Impact**: Consumers cannot reset shared state in test setup or between scopes
+- **Fix**: Add `void FlushShared()` to `IInertia` interface; change visibility from `internal` to `public` on the implementation
+
+### IMP-19: `GetVersion()` not exposed on `IInertia` interface
+- **PHP**: `Inertia::getVersion()` is public on the `ResponseFactory`
+- **C#**: `InertiaFactory.GetVersion()` exists (`InertiaFactory.cs:196`) but is `internal`
+- **Impact**: Consumers cannot inspect the resolved asset version for debugging or conditional logic
+- **Fix**: Add `string GetVersion()` to `IInertia` interface; change visibility from `internal` to `public`
+
 ---
 
-## Minor Gaps (13)
+## Minor Gaps (14)
 
 | ID | Area | Issue |
 |----|------|-------|
@@ -125,6 +140,24 @@ The most impactful remaining findings are:
 | ~~MIN-11~~ | SSR | ~~`BrowserApi` and `Stack` fields missing from `SsrException`~~ FIXED (Phase D): Added `BrowserApi` and `Stack` properties to `SsrException`. `ParseError` now extracts `browserApi` and `stack` from SSR error JSON. |
 | MIN-12 | Props | No recursion into indexed arrays in PropsResolver (documented intentional divergence) |
 | MIN-13 | Testing | `AssertInertiaFlash` on redirect responses (TempData inspection) missing |
+| MIN-15 | Core | No `Back()` convenience method on `IInertia` — PHP has `Inertia::back($status, $headers, $fallback)` for redirect to previous URL; consumers can use `Request.Headers.Referer` directly |
+
+---
+
+## Protocol-Level Features (Beyond inertia-laravel Scope)
+
+Features documented in the Inertia.js v3 protocol specification that are NOT implemented by inertia-laravel but could be provided by our adapter or ecosystem packages.
+
+### PROTO-01: Precognition Support
+- **Protocol**: Request headers `Precognition: true`, `Precognition-Validate-Only: field1,field2`
+- **Response**: Headers `Precognition: true`, `Precognition-Success: true`, `Vary: Precognition`; status 204 on success, 422 with validation errors on failure
+- **Behavior**: Validate form fields without processing the submission — enables real-time field-by-field validation as users fill out forms
+- **Laravel**: Handled by separate `laravel/precognition` package, NOT part of inertia-laravel
+- **Recommendation**: Optional middleware. Could be:
+  - (a) Separate `PrecognitionMiddleware` in `Inertia.AspNetCore` (simplest for users)
+  - (b) Separate NuGet package `Inertia.AspNetCore.Precognition` (cleaner separation)
+- **Priority**: Future enhancement — no server adapter bundles this; not blocking parity claim
+- **Decision**: Track as post-v3 enhancement
 
 ---
 
@@ -137,9 +170,11 @@ The most impactful remaining findings are:
 
 ---
 
-## Not Applicable (Laravel-specific, ~20 items)
+## Not Applicable
 
-These are intentionally not ported:
+### Laravel-Specific (~11 items)
+
+These are intentionally not ported — they are Laravel ecosystem idioms with C# equivalents:
 - Facade pattern (`Inertia::render()`) → DI + `IInertia`
 - Blade directives → Tag Helpers
 - Route/Request/Redirect macros → Extension methods / DI
@@ -151,6 +186,21 @@ These are intentionally not ported:
 - Config publishing → `appsettings.json` + Options pattern
 - `GuzzleHttp\Promise` support → `Task<T>` natively
 - No enum component name overload — C# developers call `.ToString()` (PHP idiom, not needed)
+
+### Framework-Level (ASP.NET Core handles)
+
+These are mentioned in the Inertia.js protocol docs but handled by ASP.NET Core framework middleware, not the Inertia adapter:
+- CSRF Protection → `AntiforgeryMiddleware` / `[ValidateAntiForgeryToken]`
+- Method Spoofing (`_method`) → `HttpMethodOverrideMiddleware`
+- Session Management → ASP.NET Core session middleware
+- Authentication → ASP.NET Core Identity / external auth providers
+- File Upload handling → Model binding handles `multipart/form-data` natively
+- Cookie encryption → ASP.NET Core Data Protection
+
+### Separate Package Concerns
+
+Features that exist in the Inertia ecosystem as standalone packages, not part of any server adapter:
+- Precognition → See PROTO-01 above
 
 ---
 
@@ -185,5 +235,8 @@ These are intentionally not ported:
 18. **IMP-15** — `Scope()`, `First()`, `Each()`, `Etc()`
 19. **IMP-16** — Missing assertion methods
 
-### Phase F: Minor Polish
-20-32. All MIN-* items
+### Phase F: API Surface & Minor Polish
+20. **IMP-18** — Expose `FlushShared()` on `IInertia` (trivial: interface addition + visibility change)
+21. **IMP-19** — Expose `GetVersion()` on `IInertia` (trivial: interface addition + visibility change)
+22. **MIN-15** — `Back()` convenience method
+23-34. All remaining MIN-* items
