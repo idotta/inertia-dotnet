@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http;
 using System.Text.Json;
 using FluentAssertions;
 using Inertia.AspNetCore;
@@ -236,6 +238,58 @@ public class InertiaExceptionHandlerTests
         private static BadHttpRequestException CreateBadHttpRequestException(int statusCode)
         {
             return new BadHttpRequestException("test", statusCode);
+        }
+    }
+
+    public class StatusCodeDerivation
+    {
+        [Fact]
+        public async Task TryHandleAsync_BadHttpRequestException_DerivesStatusCode()
+        {
+            var (handler, ctx) = CreateHandler(o =>
+                o.ExceptionHandler = ec => InertiaExceptionResult.Render("Error",
+                    new Dictionary<string, object?> { ["status"] = ec.StatusCode }));
+
+            await handler.TryHandleAsync(ctx, new BadHttpRequestException("bad request", 400), default);
+
+            ctx.Response.StatusCode.Should().Be(400);
+        }
+
+        [Fact]
+        public async Task TryHandleAsync_InertiaHttpException_DerivesStatusCode()
+        {
+            var (handler, ctx) = CreateHandler(o =>
+                o.ExceptionHandler = ec => InertiaExceptionResult.Render("Error",
+                    new Dictionary<string, object?> { ["status"] = ec.StatusCode }));
+
+            await handler.TryHandleAsync(ctx, new InertiaHttpException(403, "Forbidden"), default);
+
+            ctx.Response.StatusCode.Should().Be(403);
+        }
+
+        [Fact]
+        public async Task TryHandleAsync_HttpRequestException_DerivesStatusCode()
+        {
+            var (handler, ctx) = CreateHandler(o =>
+                o.ExceptionHandler = ec => InertiaExceptionResult.Render("Error",
+                    new Dictionary<string, object?> { ["status"] = ec.StatusCode }));
+
+            await handler.TryHandleAsync(ctx,
+                new HttpRequestException("Not Found", null, HttpStatusCode.NotFound), default);
+
+            ctx.Response.StatusCode.Should().Be(404);
+        }
+
+        [Fact]
+        public async Task TryHandleAsync_GenericException_Defaults500()
+        {
+            var (handler, ctx) = CreateHandler(o =>
+                o.ExceptionHandler = ec => InertiaExceptionResult.Render("Error",
+                    new Dictionary<string, object?> { ["status"] = ec.StatusCode }));
+
+            await handler.TryHandleAsync(ctx, new InvalidOperationException("oops"), default);
+
+            ctx.Response.StatusCode.Should().Be(500);
         }
     }
 

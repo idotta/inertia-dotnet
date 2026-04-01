@@ -43,6 +43,11 @@ public sealed class InertiaOptions
     /// <summary>Paths to always exclude from server-side rendering (e.g., "/admin", "/api/*"). Supports exact match and trailing wildcard.</summary>
     public string[]? SsrExcludePaths { get; set; }
 
+    /// <summary>Delegate that resolves the Vite dev server URL when running in hot mode.
+    /// Return the base URL (e.g., "http://localhost:5173") to use Vite's SSR endpoint,
+    /// or null when not in hot mode. When non-null, bundle existence checks are skipped.</summary>
+    public Func<string?>? HotFileResolver { get; set; }
+
     // -- Pages --
 
     /// <summary>When enabled, component names are validated against the file system during rendering.</summary>
@@ -99,6 +104,12 @@ public sealed class InertiaOptions
 
     /// <summary>Delegate invoked when the response body is empty. Default behavior returns 204 No Content.</summary>
     public Func<HttpContext, IResult>? OnEmptyResponse { get; set; }
+
+    // -- SSR events --
+
+    /// <summary>Callback invoked when SSR rendering fails, before logging and optional throw.
+    /// Use this to integrate with metrics, alerting, or custom error handling.</summary>
+    public Action<SsrRenderFailedContext>? OnSsrRenderFailed { get; set; }
 
     // -- Exception handling --
 

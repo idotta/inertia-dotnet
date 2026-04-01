@@ -317,9 +317,224 @@ public class HttpSsrGatewayTests
             var ex = await act.Should().ThrowAsync<SsrException>();
             ex.Which.ErrorType.Should().Be(SsrErrorType.Connection);
         }
+
+        [Fact]
+        public async Task DispatchAsync_ParsesBrowserApiAndStack_FromResponse()
+        {
+            var errorJson = """{"error":"window is not defined","type":"browser-api","hint":"Use typeof window","browserApi":"window","stack":"Error\n  at render","sourceLocation":"app.tsx:10:5"}""";
+            var handler = new MockHttpMessageHandler(
+                new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent(errorJson),
+                });
+            var (gateway, _) = CreateGateway(o => o.SsrThrowOnError = true, handler: handler);
+
+            var act = () => gateway.DispatchAsync(CreatePage());
+
+            var ex = await act.Should().ThrowAsync<SsrException>();
+            ex.Which.BrowserApi.Should().Be("window");
+            ex.Which.Stack.Should().Be("Error\n  at render");
+            ex.Which.Hint.Should().Be("Use typeof window");
+            ex.Which.SourceLocation.Should().Be("app.tsx:10:5");
+        }
     }
 
-    // ---- Group 5: Health Check ----
+    // ---- Group 5: SSR Render Failed Event ----
+    public class SsrRenderFailedEvent
+    {
+        [Fact]
+        public async Task DispatchAsync_HttpError_InvokesOnSsrRenderFailed()
+        {
+            SsrRenderFailedContext? captured = null;
+            var handler = new MockHttpMessageHandler(
+                new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("""{"error":"server error","type":"render"}"""),
+                });
+            var (gateway, _) = CreateGateway(
+                o => o.OnSsrRenderFailed = ctx => captured = ctx,
+                handler: handler);
+
+            await gateway.DispatchAsync(CreatePage());
+
+            captured.Should().NotBeNull();
+            captured!.Error.Should().Be("server error");
+            captured.ErrorType.Should().Be(SsrErrorType.Render);
+            captured.Page.Component.Should().Be("Users/Index");
+        }
+
+        [Fact]
+        public async Task DispatchAsync_ConnectionError_InvokesOnSsrRenderFailed()
+        {
+            SsrRenderFailedContext? captured = null;
+            var handler = new MockHttpMessageHandler(
+                _ => throw new HttpRequestException("Connection refused"));
+            var (gateway, _) = CreateGateway(
+                o => o.OnSsrRenderFailed = ctx => captured = ctx,
+                handler: handler);
+
+            await gateway.DispatchAsync(CreatePage());
+
+            captured.Should().NotBeNull();
+            captured!.ErrorType.Should().Be(SsrErrorType.Connection);
+            captured.Exception.Should().BeOfType<HttpRequestException>();
+        }
+
+        [Fact]
+        public async Task DispatchAsync_OnSsrRenderFailed_ReceivesFullContext()
+        {
+            SsrRenderFailedContext? captured = null;
+            var errorJson = """{"error":"window is not defined","type":"browser-api","hint":"Use typeof window","browserApi":"window","stack":"Error\n  at render","sourceLocation":"app.tsx:10:5"}""";
+            var handler = new MockHttpMessageHandler(
+                new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent(errorJson),
+                });
+            var (gateway, _) = CreateGateway(
+                o => o.OnSsrRenderFailed = ctx => captured = ctx,
+                handler: handler);
+
+            await gateway.DispatchAsync(CreatePage());
+
+            captured.Should().NotBeNull();
+            captured!.Error.Should().Be("window is not defined");
+            captured.ErrorType.Should().Be(SsrErrorType.BrowserApi);
+            captured.Hint.Should().Be("Use typeof window");
+            captured.BrowserApi.Should().Be("window");
+            captured.Stack.Should().Be("Error\n  at render");
+            captured.SourceLocation.Should().Be("app.tsx:10:5");
+        }
+
+        [Fact]
+        public async Task DispatchAsync_OnSsrRenderFailed_CalledBeforeThrow()
+        {
+            var callbackInvoked = false;
+            var handler = new MockHttpMessageHandler(
+                new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("""{"error":"fail","type":"render"}"""),
+                });
+            var (gateway, _) = CreateGateway(o =>
+            {
+                o.SsrThrowOnError = true;
+                o.OnSsrRenderFailed = _ => callbackInvoked = true;
+            }, handler: handler);
+
+            var act = () => gateway.DispatchAsync(CreatePage());
+
+            await act.Should().ThrowAsync<SsrException>();
+            callbackInvoked.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task DispatchAsync_OnSsrRenderFailed_ExceptionInCallback_DoesNotBreakFallback()
+        {
+            var handler = new MockHttpMessageHandler(
+                new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("""{"error":"fail","type":"render"}"""),
+                });
+            var (gateway, _) = CreateGateway(
+                o => o.OnSsrRenderFailed = _ => throw new InvalidOperationException("callback broke"),
+                handler: handler);
+
+            var result = await gateway.DispatchAsync(CreatePage());
+
+            result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task DispatchAsync_OnSsrRenderFailed_ExceptionInCallback_LogsError()
+        {
+            var handler = new MockHttpMessageHandler(
+                new HttpResponseMessage(HttpStatusCode.InternalServerError)
+                {
+                    Content = new StringContent("""{"error":"fail","type":"render"}"""),
+                });
+            var logger = new CapturingLogger<HttpSsrGateway>();
+            var (gateway, _) = CreateGateway(
+                o => o.OnSsrRenderFailed = _ => throw new InvalidOperationException("callback broke"),
+                handler: handler,
+                logger: logger);
+
+            await gateway.DispatchAsync(CreatePage());
+
+            logger.Entries.Should().Contain(e => e.Level == LogLevel.Error);
+        }
+    }
+
+    // ---- Group 6: Vite Hot Reload ----
+    public class ViteHotReload
+    {
+        [Fact]
+        public async Task DispatchAsync_HotResolver_ReturnsUrl_PostsToInertiaSsrEndpoint()
+        {
+            var (gateway, handler) = CreateGateway(
+                o => o.HotFileResolver = () => "http://localhost:5173");
+
+            await gateway.DispatchAsync(CreatePage());
+
+            handler.LastRequest!.RequestUri!.ToString().Should().Be("http://localhost:5173/__inertia_ssr");
+        }
+
+        [Fact]
+        public async Task DispatchAsync_HotResolver_ReturnsNull_PostsToRenderEndpoint()
+        {
+            var (gateway, handler) = CreateGateway(
+                o => o.HotFileResolver = () => null);
+
+            await gateway.DispatchAsync(CreatePage());
+
+            handler.LastRequest!.RequestUri!.ToString().Should().Be("http://127.0.0.1:13714/render");
+        }
+
+        [Fact]
+        public async Task DispatchAsync_HotResolver_SkipsBundleCheck()
+        {
+            var bundleDetector = new SsrBundleDetector(new InertiaOptions(), _ => false);
+            var (gateway, handler) = CreateGateway(
+                o => o.HotFileResolver = () => "http://localhost:5173",
+                bundleDetector: bundleDetector);
+
+            var result = await gateway.DispatchAsync(CreatePage());
+
+            result.Should().NotBeNull();
+            handler.CallCount.Should().Be(1);
+        }
+
+        [Fact]
+        public async Task DispatchAsync_HotResolver_TrimsTrailingSlash()
+        {
+            var (gateway, handler) = CreateGateway(
+                o => o.HotFileResolver = () => "http://localhost:5173/");
+
+            await gateway.DispatchAsync(CreatePage());
+
+            handler.LastRequest!.RequestUri!.ToString().Should().Be("http://localhost:5173/__inertia_ssr");
+        }
+
+        [Fact]
+        public async Task IsHealthyAsync_HotResolver_AlwaysUsesProductionUrl()
+        {
+            var (gateway, handler) = CreateGateway(
+                o => o.HotFileResolver = () => "http://localhost:5173",
+                handler: new MockHttpMessageHandler(req =>
+                {
+                    if (req.RequestUri!.PathAndQuery == "/health")
+                        return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+                    {
+                        Content = new StringContent("{\"head\":[],\"body\":\"\"}", Encoding.UTF8, "application/json"),
+                    });
+                }));
+
+            var result = await gateway.IsHealthyAsync();
+
+            result.Should().BeTrue();
+        }
+    }
+
+    // ---- Group 7: Health Check ----
     public class HealthCheck
     {
         [Fact]

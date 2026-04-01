@@ -4,7 +4,7 @@
 **Audited by**: 8 specialist sub-agents (code-architect, code-reviewer, csharp-developer, security-auditor)
 **Verified by**: dotnet-core-expert, csharp-developer, 3x code-explorer agents
 **Baseline**: 682 tests passing (610 Inertia.Tests + 72 Inertia.Testing.Tests)
-**Current**: 763 tests passing (685 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase C
+**Current**: 788 tests passing (710 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase D
 
 ---
 
@@ -12,17 +12,16 @@
 
 The audit identified **35 gaps** across 8 functional areas. Of these:
 - **5 Critical** — block feature parity claim or cause runtime failures (**5 fixed** in Phases A+B)
-- **17 Important** — significant missing features or API surface (**9 fixed** in Phases A+B+C)
-- **13 Minor** — convenience gaps, documentation, or edge cases
+- **17 Important** — significant missing features or API surface (**12 fixed** in Phases A+B+C+D)
+- **13 Minor** — convenience gaps, documentation, or edge cases (**1 fixed** in Phase D)
 
 2 original findings were removed as false positives during verification.
 
 The most impactful remaining findings are:
-1. **No Vite hot reload detection for SSR** — SSR dispatch hits wrong URL during dev
-2. **`DeriveStatusCode` only handles `BadHttpRequestException`** — limited status code derivation
-3. **Testing `Scope()` and nested assertion methods missing** — no scoped assertions
-4. **Testing `WhereNot`, `WhereType`, `WhereContains`, `HasAny` missing** — incomplete assertion methods
-5. **`SsrRenderFailed` event notification missing** — no consumer-accessible SSR failure event
+1. **Testing `Scope()` and nested assertion methods missing** — no scoped assertions
+2. **Testing `WhereNot`, `WhereType`, `WhereContains`, `HasAny` missing** — incomplete assertion methods
+3. **Testing async `AssertInertia` overload missing** — no `Func<AssertableInertia, Task>` overload
+4. **Component file existence check missing from `AssertableInertia`** — `shouldExist` not wired
 
 ---
 
@@ -68,16 +67,11 @@ The most impactful remaining findings are:
 ### ~~IMP-07: No static SSR path exclusion via config~~ FIXED (Phase C)
 - **Resolution**: Added `string[]? SsrExcludePaths` to `InertiaOptions`. Middleware applies static exclusions to scoped `SsrState` via `GetService<SsrState>()` (null-safe). Supports exact match and trailing wildcard (e.g., `"/api/*"`). Additive with per-request `WithoutSsr()`.
 
-### IMP-08: No Vite hot reload detection for SSR
-- **PHP**: `HttpGateway.php:36-44` — detects `public/hot` file, uses hot URL + `/__inertia_ssr` for SSR dispatch
-- **C#**: Always uses `{SsrUrl}/render` regardless of dev/prod mode
-- **Impact**: During local development with Vite hot reload, SSR dispatch hits wrong URL. Graceful CSR fallback exists, so app still works without SSR.
-- **Fix**: Add opt-in `Func<string?>? HotFileResolver` delegate on `InertiaOptions` for Vite dev mode detection.
+### ~~IMP-08: No Vite hot reload detection for SSR~~ FIXED (Phase D)
+- **Resolution**: Added `Func<string?>? HotFileResolver` delegate to `InertiaOptions`. When it returns non-null, `HttpSsrGateway.DispatchAsync` uses `{hotUrl}/__inertia_ssr` instead of `{SsrUrl}/render` and skips bundle existence checks (matching PHP behavior). `IsHealthyAsync` always uses the production URL.
 
-### IMP-09: `DeriveStatusCode` only handles `BadHttpRequestException`
-- **PHP**: Uses response status code (covers all HTTP status codes)
-- **C#**: Only `BadHttpRequestException.StatusCode`, everything else → 500
-- **Fix**: Also check `HttpRequestException.StatusCode` (.NET 5+). Consider adding `InertiaHttpException` for `abort()` equivalent.
+### ~~IMP-09: `DeriveStatusCode` only handles `BadHttpRequestException`~~ FIXED (Phase D)
+- **Resolution**: `DeriveStatusCode` now uses pattern-matching switch: `BadHttpRequestException` → `InertiaHttpException` → `HttpRequestException.StatusCode` → 500 fallback. Added `InertiaHttpException` sealed class as C# equivalent of PHP's `abort()` (e.g., `throw new InertiaHttpException(403)`).
 
 ### ~~IMP-10: No public `HttpRequest.IsInertia()` extension method~~ FIXED (Phase C)
 - **Resolution**: Added `InertiaHttpRequestExtensions.IsInertia(this HttpRequest)` public extension method. Middleware's `IsInertiaRequest` refactored to delegate to it.
@@ -109,10 +103,8 @@ The most impactful remaining findings are:
 - **C#**: Only `Has`, `HasAll`, `Missing`, `MissingAll`, `Where` exist
 - **Fix**: Add missing assertion methods
 
-### IMP-17: `SsrRenderFailed` event notification missing
-- **PHP**: Dispatches rich `SsrRenderFailed` event through Laravel event system
-- **C#**: Only logs via `ILogger`, no consumer-accessible notification
-- **Fix**: Add event delegate or `ISsrEventHandler` interface
+### ~~IMP-17: `SsrRenderFailed` event notification missing~~ FIXED (Phase D)
+- **Resolution**: Added `Action<SsrRenderFailedContext>? OnSsrRenderFailed` delegate to `InertiaOptions`. `SsrRenderFailedContext` sealed class carries all 7 PHP fields (Page, Error, ErrorType, Hint, BrowserApi, Stack, SourceLocation) plus `Exception?`. Callback invoked before `ILogger` warning and optional throw. Callback exceptions are caught and logged at `LogError` level to protect CSR fallback.
 
 ---
 
@@ -130,7 +122,7 @@ The most impactful remaining findings are:
 | MIN-08 | Middleware | Empty response redirect uses `Referer` only (not session-stored URL) |
 | MIN-09 | SSR | Missing `bootstrap/ssr/` default bundle detection paths |
 | MIN-10 | SSR | Full-URL pattern matching absent from SSR path exclusion |
-| MIN-11 | SSR | `BrowserApi` and `Stack` fields missing from `SsrException` |
+| ~~MIN-11~~ | SSR | ~~`BrowserApi` and `Stack` fields missing from `SsrException`~~ FIXED (Phase D): Added `BrowserApi` and `Stack` properties to `SsrException`. `ParseError` now extracts `browserApi` and `stack` from SSR error JSON. |
 | MIN-12 | Props | No recursion into indexed arrays in PropsResolver (documented intentional divergence) |
 | MIN-13 | Testing | `AssertInertiaFlash` on redirect responses (TempData inspection) missing |
 
@@ -182,10 +174,10 @@ These are intentionally not ported:
 11. ~~**IMP-05** — Per-key `GetShared(key)` accessor~~
 12. ~~**IMP-07** — Static SSR path exclusion config~~
 
-### Phase D: SSR & Error Handling
-13. **IMP-08** — Vite hot reload detection
-14. **IMP-09** — Broader status code derivation
-15. **IMP-17** — SSR failure event notification
+### ~~Phase D: SSR & Error Handling~~ COMPLETE
+13. ~~**IMP-08** — Vite hot reload detection~~
+14. ~~**IMP-09** — Broader status code derivation~~
+15. ~~**IMP-17** — SSR failure event notification~~
 
 ### Phase E: Testing Package
 16. **IMP-13** — Async `AssertInertia` overload

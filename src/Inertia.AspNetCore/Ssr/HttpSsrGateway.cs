@@ -37,10 +37,15 @@ internal sealed class HttpSsrGateway : ISsrGateway
         if (!_options.SsrEnabled)
             return null;
 
-        if (_options.SsrEnsureBundleExists && _bundleDetector.Detect() is null)
+        var hotUrl = _options.HotFileResolver?.Invoke();
+        var isHot = hotUrl is not null;
+
+        if (!isHot && _options.SsrEnsureBundleExists && _bundleDetector.Detect() is null)
             return null;
 
-        var url = $"{_options.SsrUrl.TrimEnd('/')}/render";
+        var url = isHot
+            ? $"{hotUrl!.TrimEnd('/')}/__inertia_ssr"
+            : $"{_options.SsrUrl.TrimEnd('/')}/render";
         var json = page.ToJson(_options.JsonSerializerOptions);
 
         try
@@ -109,7 +114,29 @@ internal sealed class HttpSsrGateway : ISsrGateway
 
     private void HandleFailure(InertiaPage page, string? errorJson, Exception? exception)
     {
-        var (error, errorType, hint, sourceLocation) = ParseError(errorJson, exception);
+        var (error, errorType, hint, browserApi, stack, sourceLocation) = ParseError(errorJson, exception);
+
+        if (_options.OnSsrRenderFailed is { } callback)
+        {
+            try
+            {
+                callback(new SsrRenderFailedContext
+                {
+                    Page = page,
+                    Error = error,
+                    ErrorType = errorType,
+                    Hint = hint,
+                    BrowserApi = browserApi,
+                    Stack = stack,
+                    SourceLocation = sourceLocation,
+                    Exception = exception,
+                });
+            }
+            catch (Exception callbackEx)
+            {
+                _logger.LogError(callbackEx, "OnSsrRenderFailed callback threw an exception");
+            }
+        }
 
         _logger.LogWarning(
             "SSR render failed for component [{Component}]: {Error} (type: {ErrorType})",
@@ -118,11 +145,11 @@ internal sealed class HttpSsrGateway : ISsrGateway
         if (_options.SsrThrowOnError)
         {
             throw SsrException.Create(
-                page.Component, error, errorType, hint, sourceLocation, exception);
+                page.Component, error, errorType, hint, browserApi, stack, sourceLocation, exception);
         }
     }
 
-    private static (string Error, SsrErrorType Type, string? Hint, string? SourceLocation)
+    private static (string Error, SsrErrorType Type, string? Hint, string? BrowserApi, string? Stack, string? SourceLocation)
         ParseError(string? errorJson, Exception? exception)
     {
         if (errorJson is not null)
@@ -135,6 +162,8 @@ internal sealed class HttpSsrGateway : ISsrGateway
                     root.TryGetProperty("error", out var e) ? e.GetString() ?? "Unknown SSR error" : "Unknown SSR error",
                     SsrErrorTypeParser.FromString(root.TryGetProperty("type", out var t) ? t.GetString() : null),
                     root.TryGetProperty("hint", out var h) ? h.GetString() : null,
+                    root.TryGetProperty("browserApi", out var b) ? b.GetString() : null,
+                    root.TryGetProperty("stack", out var st) ? st.GetString() : null,
                     root.TryGetProperty("sourceLocation", out var s) ? s.GetString() : null
                 );
             }
@@ -144,6 +173,8 @@ internal sealed class HttpSsrGateway : ISsrGateway
         return (
             exception?.Message ?? "Unknown SSR error",
             exception is HttpRequestException ? SsrErrorType.Connection : SsrErrorType.Unknown,
+            null,
+            null,
             null,
             null
         );

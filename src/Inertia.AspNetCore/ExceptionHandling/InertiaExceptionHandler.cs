@@ -1,3 +1,4 @@
+using System.Net.Http;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -79,8 +80,11 @@ internal sealed class InertiaExceptionHandler : IExceptionHandler
         return false;
     }
 
-    private static int DeriveStatusCode(Exception exception)
+    private static int DeriveStatusCode(Exception exception) => exception switch
     {
-        return exception is BadHttpRequestException e ? e.StatusCode : StatusCodes.Status500InternalServerError;
-    }
+        BadHttpRequestException e => e.StatusCode,
+        InertiaHttpException e => e.StatusCode,
+        HttpRequestException { StatusCode: { } statusCode } => (int)statusCode,
+        _ => StatusCodes.Status500InternalServerError,
+    };
 }

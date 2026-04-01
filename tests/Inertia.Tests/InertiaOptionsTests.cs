@@ -171,6 +171,18 @@ public class InertiaOptionsTests
         {
             _options.OnEmptyResponse.Should().BeNull();
         }
+
+        [Fact]
+        public void HotFileResolver_DefaultsToNull()
+        {
+            _options.HotFileResolver.Should().BeNull();
+        }
+
+        [Fact]
+        public void OnSsrRenderFailed_DefaultsToNull()
+        {
+            _options.OnSsrRenderFailed.Should().BeNull();
+        }
     }
 
     public class Validation

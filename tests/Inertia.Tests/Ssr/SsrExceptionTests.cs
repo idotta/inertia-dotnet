@@ -47,6 +47,17 @@ public class SsrExceptionTests
         }
 
         [Fact]
+        public void Create_WithBrowserApiAndStack_SetsProperties()
+        {
+            var ex = SsrException.Create("Users/Index", "window is not defined", SsrErrorType.BrowserApi,
+                hint: "Use typeof window check", browserApi: "window",
+                stack: "Error: window is not defined\n    at render (app.tsx:10:5)");
+
+            ex.BrowserApi.Should().Be("window");
+            ex.Stack.Should().Be("Error: window is not defined\n    at render (app.tsx:10:5)");
+        }
+
+        [Fact]
         public void Create_WithAllDetails()
         {
             var inner = new HttpRequestException("timeout");
@@ -59,6 +70,8 @@ public class SsrExceptionTests
             ex.Component.Should().Be("Dashboard");
             ex.ErrorType.Should().Be(SsrErrorType.Connection);
             ex.Hint.Should().Be("Check SSR server");
+            ex.BrowserApi.Should().BeNull();
+            ex.Stack.Should().BeNull();
             ex.SourceLocation.Should().Be("main.ts:1:1");
             ex.InnerException.Should().BeSameAs(inner);
         }
