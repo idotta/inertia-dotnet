@@ -102,6 +102,38 @@ public class InertiaFactoryTests
             factory.GetShared().Should().BeEmpty();
             factory.GetSharedProviders().Should().BeEmpty();
         }
+
+        [Fact]
+        public void Share_AnonymousObject_FlattensProperties()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            factory.Share(new { Auth = "user", Locale = "en" });
+
+            var shared = factory.GetShared();
+            shared.Should().ContainKey("Auth").WhoseValue.Should().Be("user");
+            shared.Should().ContainKey("Locale").WhoseValue.Should().Be("en");
+        }
+
+        [Fact]
+        public void Share_DictionaryAsObject_DelegatesToDictionaryOverload()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            factory.Share((object)new Dictionary<string, object?> { ["x"] = 1 });
+
+            factory.GetShared().Should().ContainKey("x").WhoseValue.Should().Be(1);
+        }
+
+        [Fact]
+        public void Share_StringAsObject_ThrowsArgumentException()
+        {
+            var (factory, _, _) = CreateFactory();
+
+            var act = () => factory.Share((object)"accidental");
+
+            act.Should().Throw<ArgumentException>();
+        }
     }
 
     public class ClearHistoryTests
@@ -123,6 +155,16 @@ public class InertiaFactoryTests
 
             factory.GetClearHistory().Should().BeFalse();
         }
+
+        [Fact]
+        public void ClearHistory_WritesToTempData()
+        {
+            var (factory, _, tempData) = CreateFactory();
+
+            factory.ClearHistory();
+
+            tempData.Received()[InertiaSessionKeys.ClearHistory] = "true";
+        }
     }
 
     public class PreserveFragmentTests
@@ -135,6 +177,16 @@ public class InertiaFactoryTests
             factory.PreserveFragment();
 
             factory.GetPreserveFragment().Should().BeTrue();
+        }
+
+        [Fact]
+        public void PreserveFragment_WritesToTempData()
+        {
+            var (factory, _, tempData) = CreateFactory();
+
+            factory.PreserveFragment();
+
+            tempData.Received()[InertiaSessionKeys.PreserveFragment] = "true";
         }
     }
 
@@ -227,6 +279,38 @@ public class InertiaFactoryTests
             var response = factory.Render("Test/Page", (object)provider);
 
             response.Props.Should().ContainKey("0").WhoseValue.Should().BeSameAs(provider);
+        }
+
+        [Fact]
+        public void Render_ResolvesClearHistoryFromTempData_WhenBooleanNotSet()
+        {
+            var (factory, _, tempData) = CreateFactory();
+            tempData.TryGetValue(InertiaSessionKeys.ClearHistory, out Arg.Any<object?>()!)
+                .Returns(x =>
+                {
+                    x[1] = "true";
+                    return true;
+                });
+
+            var response = factory.Render("Test/Page");
+
+            response.ClearHistory.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Render_ResolvesPreserveFragmentFromTempData_WhenBooleanNotSet()
+        {
+            var (factory, _, tempData) = CreateFactory();
+            tempData.TryGetValue(InertiaSessionKeys.PreserveFragment, out Arg.Any<object?>()!)
+                .Returns(x =>
+                {
+                    x[1] = "true";
+                    return true;
+                });
+
+            var response = factory.Render("Test/Page");
+
+            response.PreserveFragment.Should().BeTrue();
         }
     }
 

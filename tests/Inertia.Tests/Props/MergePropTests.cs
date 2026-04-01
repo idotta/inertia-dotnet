@@ -226,6 +226,16 @@ public class MergePropTests
 
             ((IOnceable)prop).ExpiresAt.Should().NotBeNull();
         }
+
+        [Fact]
+        public void Until_WithDateTimeOffset_SetsExpiration()
+        {
+            var prop = new MergeProp<string>("value");
+
+            prop.Until(DateTimeOffset.UtcNow.AddMinutes(10));
+
+            ((IOnceable)prop).ExpiresAt.Should().NotBeNull();
+        }
     }
 
     public class FluentChaining

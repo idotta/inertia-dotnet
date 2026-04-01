@@ -57,6 +57,23 @@ public class SsrBundleDetectorTests
     public class DefaultPaths
     {
         [Fact]
+        public void DefaultPaths_ContainsWwwrootSsrPaths()
+        {
+            SsrBundleDetector.DefaultPaths.Should().Contain("wwwroot/ssr/ssr.js");
+            SsrBundleDetector.DefaultPaths.Should().Contain("wwwroot/ssr/ssr.mjs");
+            SsrBundleDetector.DefaultPaths.Should().Contain("wwwroot/ssr/app.js");
+            SsrBundleDetector.DefaultPaths.Should().Contain("wwwroot/ssr/app.mjs");
+        }
+
+        [Fact]
+        public void DefaultPaths_SsrPathsBeforeJsPaths()
+        {
+            var ssrIndex = Array.IndexOf(SsrBundleDetector.DefaultPaths, "wwwroot/ssr/ssr.js");
+            var jsIndex = Array.IndexOf(SsrBundleDetector.DefaultPaths, "wwwroot/js/ssr.js");
+            ssrIndex.Should().BeLessThan(jsIndex);
+        }
+
+        [Fact]
         public void Detect_CustomBundle_Null_ScansDefaults()
         {
             var checkedPaths = new List<string>();

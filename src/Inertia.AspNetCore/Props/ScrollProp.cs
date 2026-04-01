@@ -8,11 +8,13 @@ namespace Inertia.AspNetCore;
 /// Constructor auto-sets merge to true. Resolve caches result after first call.
 /// </summary>
 /// <typeparam name="T">The type of the scroll data value.</typeparam>
-public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableProp<T>, IScrollPropInternal
+public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableProp<T>, IScrollPropInternal, IServiceResolvableProp
 {
     private readonly T? _value;
     private readonly Func<T>? _syncCallback;
     private readonly Func<Task<T>>? _asyncCallback;
+    private readonly Func<IServiceProvider, T>? _serviceCallback;
+    private readonly Func<IServiceProvider, Task<T>>? _asyncServiceCallback;
     private T? _resolved;
     private bool _hasResolved;
     private readonly string _wrapper;
@@ -60,6 +62,44 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
         Merge();
     }
 
+    /// <summary>Initializes a new instance with an asynchronous callback and metadata factory.</summary>
+    public ScrollProp(Func<Task<T>> asyncCallback, string wrapper, Func<object?, IScrollMetadataProvider> metadataFactory)
+    {
+        _asyncCallback = asyncCallback;
+        _wrapper = wrapper;
+        _metadataFactory = metadataFactory;
+        _defer = new DeferInfo();
+        Merge();
+    }
+
+    /// <summary>Initializes a new instance with a synchronous service-provider callback.</summary>
+    /// <param name="serviceCallback">A function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <param name="wrapper">The wrapper path used for merge append/prepend operations. Defaults to "data".</param>
+    /// <param name="metadata">Optional scroll metadata provider.</param>
+    public ScrollProp(Func<IServiceProvider, T> serviceCallback, string wrapper = "data", IScrollMetadataProvider? metadata = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceCallback);
+        _serviceCallback = serviceCallback;
+        _wrapper = wrapper;
+        _metadata = metadata;
+        _defer = new DeferInfo();
+        Merge();
+    }
+
+    /// <summary>Initializes a new instance with an asynchronous service-provider callback.</summary>
+    /// <param name="asyncServiceCallback">An async function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <param name="wrapper">The wrapper path used for merge append/prepend operations. Defaults to "data".</param>
+    /// <param name="metadata">Optional scroll metadata provider.</param>
+    public ScrollProp(Func<IServiceProvider, Task<T>> asyncServiceCallback, string wrapper = "data", IScrollMetadataProvider? metadata = null)
+    {
+        ArgumentNullException.ThrowIfNull(asyncServiceCallback);
+        _asyncServiceCallback = asyncServiceCallback;
+        _wrapper = wrapper;
+        _metadata = metadata;
+        _defer = new DeferInfo();
+        Merge();
+    }
+
     /// <summary>Resolves the value, caching after first call.</summary>
     public async Task<T> ResolveAsync()
     {
@@ -78,6 +118,28 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
 
     /// <inheritdoc />
     async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
+
+    // IServiceResolvableProp (explicit interface implementation)
+    bool IServiceResolvableProp.HasServiceCallback => _serviceCallback is not null || _asyncServiceCallback is not null;
+
+    async Task<object?> IServiceResolvableProp.ResolveWithServiceAsync(IServiceProvider serviceProvider)
+    {
+        if (!_hasResolved)
+        {
+            if (_asyncServiceCallback is not null)
+                _resolved = await _asyncServiceCallback(serviceProvider);
+            else if (_serviceCallback is not null)
+                _resolved = _serviceCallback(serviceProvider);
+            else if (_asyncCallback is not null)
+                _resolved = await _asyncCallback();
+            else if (_syncCallback is not null)
+                _resolved = _syncCallback();
+            else
+                _resolved = _value;
+            _hasResolved = true;
+        }
+        return _resolved;
+    }
 
     // IDeferrable (explicit)
     bool IDeferrable.ShouldDefer => _defer.ShouldDefer;
@@ -151,10 +213,14 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
     public new ScrollProp<T> Append(string path, string? matchOn = null) { base.Append(path, matchOn); return this; }
     /// <summary>Adds multiple paths where values should be appended during merging.</summary>
     public new ScrollProp<T> Append(IEnumerable<string> paths) { base.Append(paths); return this; }
+    /// <summary>Adds paths with associated match-on keys for appending during merging.</summary>
+    public new ScrollProp<T> Append(IDictionary<string, string> pathsWithMatchOn) { base.Append(pathsWithMatchOn); return this; }
     /// <summary>Sets the prepend flag by inverting the value.</summary>
     public new ScrollProp<T> Prepend(bool value = true) { base.Prepend(value); return this; }
     /// <summary>Adds a specific path where values should be prepended during merging.</summary>
     public new ScrollProp<T> Prepend(string path, string? matchOn = null) { base.Prepend(path, matchOn); return this; }
     /// <summary>Adds multiple paths where values should be prepended during merging.</summary>
     public new ScrollProp<T> Prepend(IEnumerable<string> paths) { base.Prepend(paths); return this; }
+    /// <summary>Adds paths with associated match-on keys for prepending during merging.</summary>
+    public new ScrollProp<T> Prepend(IDictionary<string, string> pathsWithMatchOn) { base.Prepend(pathsWithMatchOn); return this; }
 }

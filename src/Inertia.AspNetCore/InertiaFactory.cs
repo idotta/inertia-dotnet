@@ -72,8 +72,8 @@ internal sealed class InertiaFactory : IInertia
             rootView: rootView,
             version: version,
             encryptHistory: encryptHistory,
-            clearHistory: _clearHistory,
-            preserveFragment: _preserveFragment,
+            clearHistory: ResolveClearHistory(httpContext),
+            preserveFragment: ResolvePreserveFragment(httpContext),
             flash: GetFlashedInternal(httpContext),
             exposeSharedPropKeys: _options.ExposeSharedPropKeys,
             jsonOptions: _options.JsonSerializerOptions,
@@ -83,6 +83,16 @@ internal sealed class InertiaFactory : IInertia
 
     /// <inheritdoc />
     public InertiaLocationResult Location(string url) => new(url);
+
+    /// <inheritdoc />
+    public InertiaBackResult Back(int statusCode = 302, string? fallbackUrl = null)
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        var url = httpContext?.Request.Headers.Referer.FirstOrDefault()
+            ?? fallbackUrl
+            ?? "/";
+        return new InertiaBackResult(url, statusCode);
+    }
 
     /// <inheritdoc />
     public void Share(string key, object? value) => _sharedProps[key] = value;
@@ -96,6 +106,27 @@ internal sealed class InertiaFactory : IInertia
 
     /// <inheritdoc />
     public void Share(IInertiaPropertyProvider provider) => _sharedProviders.Add(provider);
+
+    /// <inheritdoc />
+    public void Share(object props)
+    {
+        ArgumentNullException.ThrowIfNull(props);
+        switch (props)
+        {
+            case IDictionary<string, object?> dict:
+                Share(dict);
+                break;
+            case IInertiaPropertyProvider provider:
+                Share(provider);
+                break;
+            case string:
+                throw new ArgumentException(
+                    "Use Share(string key, object? value) to share a single keyed prop.", nameof(props));
+            default:
+                Share(ObjectToDictionary(props));
+                break;
+        }
+    }
 
     /// <inheritdoc />
     public void ShareOnce<T>(string key, Func<T> callback)
@@ -140,10 +171,24 @@ internal sealed class InertiaFactory : IInertia
     }
 
     /// <inheritdoc />
-    public void ClearHistory() => _clearHistory = true;
+    public void ClearHistory()
+    {
+        _clearHistory = true;
+        var httpContext = _httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException("HttpContext is not available.");
+        var tempData = _tempDataFactory.GetTempData(httpContext);
+        tempData[InertiaSessionKeys.ClearHistory] = "true";
+    }
 
     /// <inheritdoc />
-    public void PreserveFragment() => _preserveFragment = true;
+    public void PreserveFragment()
+    {
+        _preserveFragment = true;
+        var httpContext = _httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException("HttpContext is not available.");
+        var tempData = _tempDataFactory.GetTempData(httpContext);
+        tempData[InertiaSessionKeys.PreserveFragment] = "true";
+    }
 
     /// <inheritdoc />
     public void EncryptHistory(bool encrypt = true) => _encryptHistory = encrypt;
@@ -183,7 +228,8 @@ internal sealed class InertiaFactory : IInertia
 
     internal IReadOnlyList<IInertiaPropertyProvider> GetSharedProviders() => _sharedProviders;
 
-    internal void FlushShared()
+    /// <inheritdoc />
+    public void FlushShared()
     {
         _sharedProps.Clear();
         _sharedProviders.Clear();
@@ -193,7 +239,20 @@ internal sealed class InertiaFactory : IInertia
 
     internal void SetRootView(string rootView) => _rootView = rootView;
 
-    internal string GetVersion() => _version ?? "";
+    /// <inheritdoc />
+    public string GetVersion() => _version ?? "";
+
+    /// <summary>
+    /// Marks all TempData keys for retention. Equivalent to PHP's <c>Session::reflash()</c>.
+    /// Called by middleware on version mismatch and redirects to preserve all session flash data.
+    /// </summary>
+    internal void ReflashAllTempData()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null) return;
+        var tempData = _tempDataFactory.GetTempData(httpContext);
+        tempData.Keep();
+    }
 
     internal string GetRootView() => _rootView ?? _options.RootView;
 
@@ -222,6 +281,20 @@ internal sealed class InertiaFactory : IInertia
     private static void SetFlashDictToTempData(ITempDataDictionary tempData, Dictionary<string, object?> data)
     {
         tempData[InertiaSessionKeys.FlashData] = JsonSerializer.Serialize(data);
+    }
+
+    private bool ResolveClearHistory(HttpContext httpContext)
+    {
+        if (_clearHistory) return true;
+        var tempData = _tempDataFactory.GetTempData(httpContext);
+        return tempData.TryGetValue(InertiaSessionKeys.ClearHistory, out _);
+    }
+
+    private bool ResolvePreserveFragment(HttpContext httpContext)
+    {
+        if (_preserveFragment) return true;
+        var tempData = _tempDataFactory.GetTempData(httpContext);
+        return tempData.TryGetValue(InertiaSessionKeys.PreserveFragment, out _);
     }
 
     private void ValidateComponentExists(string component)

@@ -157,5 +157,29 @@ public class SsrStateTests
 
             state.IsPathExcluded("/anything").Should().BeFalse();
         }
+
+        [Fact]
+        public void IsPathExcluded_FullUrlPattern_MatchesPathPortion()
+        {
+            var gateway = Substitute.For<ISsrGateway>();
+            var state = new SsrState(gateway);
+
+            state.ExcludePaths("https://example.com/admin");
+
+            state.IsPathExcluded("/admin").Should().BeTrue();
+        }
+
+        [Fact]
+        public void IsPathExcluded_FullUrlWithWildcard_MatchesPathPortion()
+        {
+            var gateway = Substitute.For<ISsrGateway>();
+            var state = new SsrState(gateway);
+
+            state.ExcludePaths("https://example.com/api/*");
+
+            state.IsPathExcluded("/api/users").Should().BeTrue();
+            state.IsPathExcluded("/api/posts").Should().BeTrue();
+            state.IsPathExcluded("/other").Should().BeFalse();
+        }
     }
 }

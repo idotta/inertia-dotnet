@@ -195,11 +195,16 @@ internal sealed class PropsResolver
 
     /// <summary>
     /// Resolves a callable value — either an IResolvableProp or a raw Delegate.
+    /// Service-provider callbacks are resolved via <see cref="IServiceResolvableProp"/>
+    /// using <c>HttpContext.RequestServices</c>.
     /// </summary>
-    private static async Task<object?> ResolveCallableAsync(object? value)
+    private async Task<object?> ResolveCallableAsync(object? value)
     {
         if (value is null or string)
             return value;
+
+        if (value is IServiceResolvableProp { HasServiceCallback: true } serviceResolvable)
+            return await serviceResolvable.ResolveWithServiceAsync(_httpContext.RequestServices);
 
         if (value is IResolvableProp prop)
             return await prop.ResolveAsObjectAsync();

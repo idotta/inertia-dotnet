@@ -132,7 +132,7 @@ public class HistoryIntegrationTests
 
             factory.ClearHistory();
 
-            tempData[InertiaSessionKeys.ClearHistory] = "true";
+            tempData.Received()[InertiaSessionKeys.ClearHistory] = "true";
         }
     }
 

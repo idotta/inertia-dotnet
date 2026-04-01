@@ -145,4 +145,85 @@ public class InertiaTestExtensionsTests
 
         called.Should().BeTrue();
     }
+
+    public class AsyncOverloads
+    {
+        private static HttpResponseMessage CreateInertiaResponse(string json)
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.OK);
+            response.Content = new StringContent(json, Encoding.UTF8, "application/json");
+            response.Headers.Add("X-Inertia", "true");
+            return response;
+        }
+
+        private static string BuildPageJson(
+            string component = "TestComponent",
+            string url = "/test",
+            string version = "1.0",
+            string? propsJson = null)
+        {
+            return $$"""{"component":"{{component}}","url":"{{url}}","version":"{{version}}","props":{{propsJson ?? "{}"}}}""";
+        }
+
+        [Fact]
+        public async Task AssertInertia_AsyncCallback_AwaitsCallback()
+        {
+            var response = CreateInertiaResponse(BuildPageJson(component: "Foo"));
+            var completed = false;
+
+            await response.AssertInertia(async page =>
+            {
+                await Task.Yield();
+                page.Component("Foo");
+                completed = true;
+            });
+
+            completed.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task AssertInertia_AsyncCallback_ReturnsOriginalResponse()
+        {
+            var response = CreateInertiaResponse(BuildPageJson());
+
+            var result = await response.AssertInertia(async page =>
+            {
+                await Task.CompletedTask;
+            });
+
+            result.Should().BeSameAs(response);
+        }
+
+        [Fact]
+        public async Task AssertInertia_AsyncCallbackTaskOverload_Works()
+        {
+            var response = CreateInertiaResponse(BuildPageJson(component: "Test"));
+            var task = Task.FromResult(response);
+            var called = false;
+
+            await task.AssertInertia(async page =>
+            {
+                await Task.Yield();
+                page.Component("Test");
+                called = true;
+            });
+
+            called.Should().BeTrue();
+        }
+
+        [Fact]
+        public async Task AssertInertia_AsyncCallback_PropagatesExceptions()
+        {
+            var response = CreateInertiaResponse(BuildPageJson());
+
+            var act = async () => await response.AssertInertia(async page =>
+            {
+                await Task.Yield();
+                throw new InvalidOperationException("test error");
+            });
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("test error");
+        }
+    }
 }

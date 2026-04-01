@@ -159,6 +159,12 @@ public sealed class InertiaResponse : IActionResult, IResult
     /// <summary>The asset version for this response.</summary>
     internal string Version => _version;
 
+    /// <summary>Whether the response signals the client to clear browser history.</summary>
+    internal bool ClearHistory => _clearHistory;
+
+    /// <summary>Whether the response signals the client to preserve the URL fragment.</summary>
+    internal bool PreserveFragment => _preserveFragment;
+
     /// <inheritdoc />
     public Task ExecuteResultAsync(ActionContext context)
         => Execute(context.HttpContext);

@@ -134,6 +134,19 @@ public class OnceInfoTests
 
             info.ExpiresAt.Should().NotBeNull();
         }
+
+        [Fact]
+        public void Until_WithDateTimeOffset_SetsExpiration()
+        {
+            var info = new OnceInfo();
+            var futureTime = DateTimeOffset.UtcNow.AddMinutes(10);
+
+            info.Until(futureTime);
+
+            info.ExpiresAt.Should().NotBeNull();
+            var expectedMs = futureTime.ToUnixTimeMilliseconds();
+            info.ExpiresAt!.Value.Should().BeCloseTo(expectedMs, 1000);
+        }
     }
 
     public class ExpiresAtProperty

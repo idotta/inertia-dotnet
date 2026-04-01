@@ -45,4 +45,8 @@ internal sealed class OnceInfo
     /// <summary>Sets the time-to-live for the cached value in seconds.</summary>
     /// <param name="seconds">The number of seconds after which the cached value expires.</param>
     public void Until(int seconds) => _ttl = TimeSpan.FromSeconds(seconds);
+
+    /// <summary>Sets the expiration time as an absolute UTC timestamp.</summary>
+    /// <param name="expiresAt">The absolute point in time when the cached value expires.</param>
+    public void Until(DateTimeOffset expiresAt) => _ttl = expiresAt - DateTimeOffset.UtcNow;
 }

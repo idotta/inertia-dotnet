@@ -294,14 +294,15 @@ public class InertiaMiddlewareTests
         }
 
         [Fact]
-        public async Task InvokeAsync_EmptyInertiaResponse_NoReferer_Returns204()
+        public async Task InvokeAsync_EmptyInertiaResponse_NoReferer_RedirectsToRoot()
         {
             var (middleware, _, ctx) = CreateMiddleware();
             SetInertiaHeaders(ctx);
 
             await middleware.InvokeAsync(ctx, NoOpNext);
 
-            ctx.Response.StatusCode.Should().Be(StatusCodes.Status204NoContent);
+            ctx.Response.StatusCode.Should().Be(StatusCodes.Status302Found);
+            ctx.Response.Headers.Location.ToString().Should().Be("/");
         }
 
         [Fact]
@@ -641,41 +642,18 @@ public class InertiaMiddlewareTests
     public class FlashDataReflashing
     {
         [Fact]
-        public async Task InvokeAsync_OnRedirect_ReflashesFlashData()
+        public async Task InvokeAsync_OnRedirect_KeepsAllTempData()
         {
             var options = new InertiaOptions();
             var httpContext = new DefaultHttpContext();
             var accessor = Substitute.For<IHttpContextAccessor>();
             accessor.HttpContext.Returns(httpContext);
 
-            // Use a real-ish TempData that stores data
-            var tempDataStore = new Dictionary<string, object?>();
             var tempData = Substitute.For<ITempDataDictionary>();
-            tempData.ContainsKey(Arg.Any<string>()).Returns(call => tempDataStore.ContainsKey((string)call[0]));
-            tempData.TryGetValue(Arg.Any<string>(), out Arg.Any<object?>()!)
-                .Returns(call =>
-                {
-                    var key = (string)call[0];
-                    if (tempDataStore.TryGetValue(key, out var val))
-                    {
-                        call[1] = val;
-                        return true;
-                    }
-                    return false;
-                });
-            tempData[Arg.Any<string>()] = Arg.Do<object?>(val =>
-            {
-                // capture the key from the indexer
-            });
-            // Track writes
-            tempData.When(t => t[Arg.Any<string>()] = Arg.Any<object?>())
-                .Do(call => tempDataStore[(string)call[0]] = call[1]);
-
             var tempDataFactory = Substitute.For<ITempDataDictionaryFactory>();
             tempDataFactory.GetTempData(httpContext).Returns(tempData);
 
             var factory = new InertiaFactory(Options.Create(options), accessor, tempDataFactory);
-            factory.Flash("message", "Success!");
 
             var services = new ServiceCollection();
             services.AddSingleton<IInertia>(factory);
@@ -685,12 +663,41 @@ public class InertiaMiddlewareTests
 
             await middleware.InvokeAsync(httpContext, RedirectNext(302, "/target"));
 
-            // Verify flash data was re-written (reflashed)
-            tempDataStore.Should().ContainKey(InertiaSessionKeys.FlashData);
+            // Verify Keep() was called with no arguments (retains ALL TempData keys)
+            tempData.Received(1).Keep();
         }
 
         [Fact]
-        public async Task InvokeAsync_VersionMismatch_ReflashesFlashData()
+        public async Task InvokeAsync_VersionMismatch_KeepsAllTempData()
+        {
+            var options = new InertiaOptions { VersionProvider = _ => "v2" };
+            var httpContext = new DefaultHttpContext();
+            var accessor = Substitute.For<IHttpContextAccessor>();
+            accessor.HttpContext.Returns(httpContext);
+
+            var tempData = Substitute.For<ITempDataDictionary>();
+            var tempDataFactory = Substitute.For<ITempDataDictionaryFactory>();
+            tempDataFactory.GetTempData(httpContext).Returns(tempData);
+
+            var factory = new InertiaFactory(Options.Create(options), accessor, tempDataFactory);
+
+            var services = new ServiceCollection();
+            services.AddSingleton<IInertia>(factory);
+            httpContext.RequestServices = services.BuildServiceProvider();
+
+            SetInertiaHeaders(httpContext, "v1");
+            httpContext.Request.Method = HttpMethods.Get;
+
+            var middleware = new InertiaMiddleware(Options.Create(options));
+
+            await middleware.InvokeAsync(httpContext, NoOpNext);
+
+            // Verify Keep() was called with no arguments (retains ALL TempData keys)
+            tempData.Received(1).Keep();
+        }
+
+        [Fact]
+        public async Task InvokeAsync_VersionMismatch_KeepsNonInertiaTempDataKeys()
         {
             var options = new InertiaOptions { VersionProvider = _ => "v2" };
             var httpContext = new DefaultHttpContext();
@@ -718,7 +725,9 @@ public class InertiaMiddlewareTests
             tempDataFactory.GetTempData(httpContext).Returns(tempData);
 
             var factory = new InertiaFactory(Options.Create(options), accessor, tempDataFactory);
-            factory.Flash("alert", "Version changed!");
+
+            // Store a non-Inertia TempData key (e.g., set by another middleware or controller)
+            tempDataStore["CustomNotification"] = "Hello from other middleware";
 
             var services = new ServiceCollection();
             services.AddSingleton<IInertia>(factory);
@@ -731,7 +740,8 @@ public class InertiaMiddlewareTests
 
             await middleware.InvokeAsync(httpContext, NoOpNext);
 
-            tempDataStore.Should().ContainKey(InertiaSessionKeys.FlashData);
+            // Keep() with no arguments marks ALL keys for retention — including non-Inertia keys
+            tempData.Received().Keep();
         }
 
         private static void SetInertiaHeaders(HttpContext ctx, string? version = null)

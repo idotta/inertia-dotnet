@@ -3,11 +3,13 @@ namespace Inertia.AspNetCore;
 /// <summary>
 /// A property that is merged with existing client-side data during partial reloads.
 /// </summary>
-public sealed class MergeProp<T> : MergeablePropBase, IOnceable, IResolvableProp<T>
+public sealed class MergeProp<T> : MergeablePropBase, IOnceable, IResolvableProp<T>, IServiceResolvableProp
 {
     private readonly T? _value;
     private readonly Func<T>? _syncCallback;
     private readonly Func<Task<T>>? _asyncCallback;
+    private readonly Func<IServiceProvider, T>? _serviceCallback;
+    private readonly Func<IServiceProvider, Task<T>>? _asyncServiceCallback;
     private readonly OnceInfo _once = new();
 
     /// <summary>Initializes a new <see cref="MergeProp{T}"/> with a scalar value. Merge is enabled by default.</summary>
@@ -19,6 +21,24 @@ public sealed class MergeProp<T> : MergeablePropBase, IOnceable, IResolvableProp
     /// <summary>Initializes a new <see cref="MergeProp{T}"/> with an asynchronous callback. Merge is enabled by default.</summary>
     public MergeProp(Func<Task<T>> asyncCallback) { _asyncCallback = asyncCallback; Merge(); }
 
+    /// <summary>Initializes a new <see cref="MergeProp{T}"/> with a synchronous service-provider callback. Merge is enabled by default.</summary>
+    /// <param name="serviceCallback">A function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    public MergeProp(Func<IServiceProvider, T> serviceCallback)
+    {
+        ArgumentNullException.ThrowIfNull(serviceCallback);
+        _serviceCallback = serviceCallback;
+        Merge();
+    }
+
+    /// <summary>Initializes a new <see cref="MergeProp{T}"/> with an asynchronous service-provider callback. Merge is enabled by default.</summary>
+    /// <param name="asyncServiceCallback">An async function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    public MergeProp(Func<IServiceProvider, Task<T>> asyncServiceCallback)
+    {
+        ArgumentNullException.ThrowIfNull(asyncServiceCallback);
+        _asyncServiceCallback = asyncServiceCallback;
+        Merge();
+    }
+
     /// <summary>Resolves the property value, awaiting async callbacks if present.</summary>
     public async Task<T> ResolveAsync()
     {
@@ -29,6 +49,16 @@ public sealed class MergeProp<T> : MergeablePropBase, IOnceable, IResolvableProp
 
     /// <inheritdoc />
     async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
+
+    // IServiceResolvableProp (explicit interface implementation)
+    bool IServiceResolvableProp.HasServiceCallback => _serviceCallback is not null || _asyncServiceCallback is not null;
+
+    async Task<object?> IServiceResolvableProp.ResolveWithServiceAsync(IServiceProvider serviceProvider)
+    {
+        if (_asyncServiceCallback is not null) return await _asyncServiceCallback(serviceProvider);
+        if (_serviceCallback is not null) return _serviceCallback(serviceProvider);
+        return await ResolveAsync();
+    }
 
     /// <inheritdoc />
     bool IOnceable.ShouldResolveOnce => _once.ShouldResolveOnce;
@@ -76,4 +106,6 @@ public sealed class MergeProp<T> : MergeablePropBase, IOnceable, IResolvableProp
     public MergeProp<T> Until(TimeSpan delay) { _once.Until(delay); return this; }
     /// <summary>Sets the time-to-live for the cached value in seconds.</summary>
     public MergeProp<T> Until(int seconds) { _once.Until(seconds); return this; }
+    /// <summary>Sets the expiration time as an absolute UTC timestamp.</summary>
+    public MergeProp<T> Until(DateTimeOffset expiresAt) { _once.Until(expiresAt); return this; }
 }

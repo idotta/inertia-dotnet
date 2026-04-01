@@ -141,6 +141,16 @@ public class DeferPropTests
 
             ((IOnceable)prop).ExpiresAt.Should().NotBeNull();
         }
+
+        [Fact]
+        public void Until_WithDateTimeOffset_SetsExpiration()
+        {
+            var prop = new DeferProp<string>(() => "value");
+
+            prop.Until(DateTimeOffset.UtcNow.AddMinutes(10));
+
+            ((IOnceable)prop).ExpiresAt.Should().NotBeNull();
+        }
     }
 
     public class FluentChaining

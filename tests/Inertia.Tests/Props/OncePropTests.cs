@@ -150,6 +150,17 @@ public class OncePropTests
         }
 
         [Fact]
+        public void Until_WithDateTimeOffset_SetsExpiration()
+        {
+            var prop = new OnceProp<string>(() => "value");
+
+            prop.Until(DateTimeOffset.UtcNow.AddMinutes(10));
+
+            var onceable = (IOnceable)prop;
+            onceable.ExpiresAt.Should().NotBeNull();
+        }
+
+        [Fact]
         public void Once_WithFalse_DisablesOnce()
         {
             var prop = new OnceProp<string>(() => "value");

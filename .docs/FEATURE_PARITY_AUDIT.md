@@ -5,7 +5,7 @@
 **Verified by**: dotnet-core-expert, csharp-developer, 3x code-explorer agents
 **Cross-referenced against**: Inertia.js v3 protocol documentation (inertiajs.com/docs/v3/)
 **Baseline**: 682 tests passing (610 Inertia.Tests + 72 Inertia.Testing.Tests)
-**Current**: 788 tests passing (710 Inertia.Tests + 78 Inertia.Testing.Tests) — after Phase D
+**Current**: 918 tests passing (783 Inertia.Tests + 135 Inertia.Testing.Tests) — after Phase F
 
 ---
 
@@ -13,18 +13,14 @@
 
 The audit identified **38 gaps** across 8 functional areas, plus **1 protocol extension**. Of these:
 - **5 Critical** — block feature parity claim or cause runtime failures (**5 fixed** in Phases A+B)
-- **19 Important** — significant missing features or API surface (**12 fixed** in Phases A+B+C+D)
-- **14 Minor** — convenience gaps, documentation, or edge cases (**1 fixed** in Phase D)
+- **19 Important** — significant missing features or API surface (**19 fixed** in Phases A+B+C+D+E+F)
+- **14 Minor** — convenience gaps, documentation, or edge cases (**12 fixed** in Phases D+F)
 
 2 original findings were removed as false positives during verification.
 1 protocol-level feature (Precognition) identified — beyond adapter scope, tracked separately.
 
-The most impactful remaining findings are:
-1. **Testing `Scope()` and nested assertion methods missing** — no scoped assertions
-2. **Testing `WhereNot`, `WhereType`, `WhereContains`, `HasAny` missing** — incomplete assertion methods
-3. **Testing async `AssertInertia` overload missing** — no `Func<AssertableInertia, Task>` overload
-4. **Component file existence check missing from `AssertableInertia`** — `shouldExist` not wired
-5. **`FlushShared()` and `GetVersion()` not exposed on `IInertia`** — internal methods need public exposure
+**All critical and important gaps are resolved.** The only remaining items are:
+1. **MIN-12** — No recursion into indexed arrays in PropsResolver (documented intentional divergence — will not fix)
 
 ---
 
@@ -85,41 +81,26 @@ The most impactful remaining findings are:
 ### ~~IMP-12: No `HasStarted` check in exception handler~~ FIXED (Phase A, with CRIT-03)
 - **Resolution**: Added `HasStarted` guard at start of `TryHandleAsync`; returns `false` if response already started.
 
-### IMP-13: Testing `AssertInertia` missing async overload
-- **C#**: `InertiaTestExtensions.AssertInertia(Action<AssertableInertia>)` takes sync `Action<>` but `ReloadAsync`, `LoadDeferredPropsAsync` return `Task`. No `Func<AssertableInertia, Task>` overload exists.
-- **Impact**: Callers wanting async assertions must block synchronously or write `async void` lambdas. Not a silent correctness bug (compiler emits CS4014 warning), but a usability gap.
-- **Fix**: Add `AssertInertia(Func<AssertableInertia, Task> asyncCallback)` overload.
+### ~~IMP-13: Testing `AssertInertia` missing async overload~~ FIXED (Phase E)
+- **Resolution**: Added `AssertInertia(Func<AssertableInertia, Task> asyncCallback)` overloads on both `HttpResponseMessage` and `Task<HttpResponseMessage>` extension targets. Callers can now use `async` lambdas with `await` for `ReloadAsync`, `LoadDeferredPropsAsync`, etc.
 
-### IMP-14: Component file existence check missing from AssertableInertia
-- **PHP**: `AssertableInertia.php:102-115` — `component(value, shouldExist: true)` validates file on disk
-- **C#**: `Component(string expected)` — asserts name only, no `shouldExist` parameter
-- **Note**: `InertiaOptions.TestingEnsurePagesExist` already exists (default `true`) with `PagePaths`/`PageExtensions`, but is never wired into `AssertableInertia`.
-- **Fix**: Add `bool? shouldExist = null` parameter; wire `InertiaOptions` into `AssertableInertia` via delegate or `IServiceProvider`.
+### ~~IMP-14: Component file existence check missing from AssertableInertia~~ FIXED (Phase E)
+- **Resolution**: Added `bool? shouldExist = null` parameter to `Component()`. Added `PageExistenceConfig` record and static `Configure()` methods (including `InertiaOptions` overload) on `AssertableInertia`. When enabled, validates file exists by iterating `PagePaths × PageExtensions` with `File.Exists`. Uses `[ThreadStatic]` to prevent parallel test interference.
 
-### IMP-15: Testing `Scope()` and nested assertion methods missing
-- **PHP**: `scope()`, `first()`, `each()`, `etc()` from AssertableJson
-- **C#**: None of these exist — no nested scoping, no interaction checking
-- **Fix**: Implement `Scope()`, `First()`, `Each()`, `Etc()` with interaction tracking
+### ~~IMP-15: Testing `Scope()` and nested assertion methods missing~~ FIXED (Phase E)
+- **Resolution**: Added `Scope(path, callback)`, `First(path, callback)`, `First(callback)`, `Each(path, callback)`, `Each(callback)`, and `Etc()` to `AssertableInertia`. Scoped instances use a private constructor with interaction tracking via `HashSet<string>`. At scope exit, `VerifyInteracted()` checks all top-level keys were touched unless `Etc()` was called. All existing assertion methods (`Has`, `Missing`, `Where`, `WhereNot`, `WhereType`, `WhereContains`, `HasAny`, `Prop`) now call `TrackInteraction()` — a no-op outside scopes.
 
-### IMP-16: Testing `WhereNot`, `WhereType`, `WhereContains`, `HasAny` missing
-- **PHP**: Full set of AssertableJson assertion methods
-- **C#**: Only `Has`, `HasAll`, `Missing`, `MissingAll`, `Where` exist
-- **Fix**: Add missing assertion methods
+### ~~IMP-16: Testing `WhereNot`, `WhereType`, `WhereContains`, `HasAny` missing~~ FIXED (Phase E)
+- **Resolution**: Added `WhereNot(path, expected)`, `WhereType(path, expectedType)` (accepts "string"/"integer"/"number"/"boolean"/"array"/"object"/"null"), `WhereContains(path, expected)` (arrays and strings), and `HasAny(params paths)` to `AssertableInertia`.
 
 ### ~~IMP-17: `SsrRenderFailed` event notification missing~~ FIXED (Phase D)
 - **Resolution**: Added `Action<SsrRenderFailedContext>? OnSsrRenderFailed` delegate to `InertiaOptions`. `SsrRenderFailedContext` sealed class carries all 7 PHP fields (Page, Error, ErrorType, Hint, BrowserApi, Stack, SourceLocation) plus `Exception?`. Callback invoked before `ILogger` warning and optional throw. Callback exceptions are caught and logged at `LogError` level to protect CSR fallback.
 
-### IMP-18: `FlushShared()` not exposed on `IInertia` interface
-- **PHP**: `Inertia::flushShared()` is public on the `ResponseFactory`
-- **C#**: `InertiaFactory.FlushShared()` exists (`InertiaFactory.cs:186`) but is `internal`
-- **Impact**: Consumers cannot reset shared state in test setup or between scopes
-- **Fix**: Add `void FlushShared()` to `IInertia` interface; change visibility from `internal` to `public` on the implementation
+### ~~IMP-18: `FlushShared()` not exposed on `IInertia` interface~~ FIXED (Phase F)
+- **Resolution**: Added `void FlushShared()` to `IInertia` interface. Changed visibility from `internal` to `public` on `InertiaFactory`.
 
-### IMP-19: `GetVersion()` not exposed on `IInertia` interface
-- **PHP**: `Inertia::getVersion()` is public on the `ResponseFactory`
-- **C#**: `InertiaFactory.GetVersion()` exists (`InertiaFactory.cs:196`) but is `internal`
-- **Impact**: Consumers cannot inspect the resolved asset version for debugging or conditional logic
-- **Fix**: Add `string GetVersion()` to `IInertia` interface; change visibility from `internal` to `public`
+### ~~IMP-19: `GetVersion()` not exposed on `IInertia` interface~~ FIXED (Phase F)
+- **Resolution**: Added `string GetVersion()` to `IInertia` interface. Changed visibility from `internal` to `public` on `InertiaFactory`.
 
 ---
 
@@ -127,20 +108,20 @@ The most impactful remaining findings are:
 
 | ID | Area | Issue |
 |----|------|-------|
-| MIN-01 | Core | `ClearHistory()`/`PreserveFragment()` don't persist across redirects via TempData |
-| MIN-02 | Core | `Share()` doesn't accept `object` for property flattening |
-| MIN-03 | Props | ScrollProp missing 2 `new` fluent overloads for `Append/Prepend(IDictionary)` |
-| MIN-04 | Props | ScrollProp missing constructor/factory overloads for metadata factory callback |
-| MIN-05 | Props | `Until(DateTimeOffset)` overload missing on OnceInfo |
-| MIN-06 | Props | `Func<IServiceProvider, T>` overloads documented in plan but never implemented |
-| MIN-07 | Middleware | Version mismatch only reflashes Inertia flash, not all TempData |
-| MIN-08 | Middleware | Empty response redirect uses `Referer` only (not session-stored URL) |
-| MIN-09 | SSR | Missing `bootstrap/ssr/` default bundle detection paths |
-| MIN-10 | SSR | Full-URL pattern matching absent from SSR path exclusion |
+| ~~MIN-01~~ | Core | ~~`ClearHistory()`/`PreserveFragment()` don't persist across redirects via TempData~~ FIXED (Phase F): Both methods now write to TempData. `Render()` resolves via `TryGetValue` (read-and-consume) matching PHP's `session()->pull()`. |
+| ~~MIN-02~~ | Core | ~~`Share()` doesn't accept `object` for property flattening~~ FIXED (Phase F): Added `Share(object)` overload with runtime type dispatch (`IDictionary`, `IInertiaPropertyProvider`, `string` guard, default reflection). |
+| ~~MIN-03~~ | Props | ~~ScrollProp missing 2 `new` fluent overloads for `Append/Prepend(IDictionary)`~~ FIXED (Phase F): Added `Append(IDictionary<string, string>)` and `Prepend(IDictionary<string, string>)` covariant shadows. |
+| ~~MIN-04~~ | Props | ~~ScrollProp missing constructor/factory overloads for metadata factory callback~~ FIXED (Phase F): Added async metadata factory constructor + 2 `Prop.Scroll<T>` factory overloads. |
+| ~~MIN-05~~ | Props | ~~`Until(DateTimeOffset)` overload missing on OnceInfo~~ FIXED (Phase F): Added `Until(DateTimeOffset)` to `OnceInfo` + fluent methods on `OptionalProp`, `OnceProp`, `DeferProp`, `MergeProp`. |
+| ~~MIN-06~~ | Props | ~~`Func<IServiceProvider, T>` overloads documented in plan but never implemented~~ FIXED (Phase F): Added `IServiceResolvableProp` interface, service callback fields/constructors on all 6 prop types, `PropsResolver` service resolution branch, and 12 `Prop.*` factory overloads. |
+| ~~MIN-07~~ | Middleware | ~~Version mismatch only reflashes Inertia flash, not all TempData~~ FIXED (Phase F): Added `ReflashAllTempData()` using `tempData.Keep()` (no-arg keeps all keys). Replaced both `ReflashFlashData` call sites. |
+| ~~MIN-08~~ | Middleware | ~~Empty response redirect uses `Referer` only~~ FIXED (Phase F): Changed no-Referer fallback from 204 No Content to `302 → /`. |
+| ~~MIN-09~~ | SSR | ~~Missing `bootstrap/ssr/` default bundle detection paths~~ FIXED (Phase F): Prepended 4 `wwwroot/ssr/` paths to `DefaultPaths` (higher priority than `wwwroot/js/`). |
+| ~~MIN-10~~ | SSR | ~~Full-URL pattern matching absent from SSR path exclusion~~ FIXED (Phase F): Added `NormalizePattern()` that extracts `Uri.AbsolutePath` from full-URL patterns. |
 | ~~MIN-11~~ | SSR | ~~`BrowserApi` and `Stack` fields missing from `SsrException`~~ FIXED (Phase D): Added `BrowserApi` and `Stack` properties to `SsrException`. `ParseError` now extracts `browserApi` and `stack` from SSR error JSON. |
-| MIN-12 | Props | No recursion into indexed arrays in PropsResolver (documented intentional divergence) |
-| MIN-13 | Testing | `AssertInertiaFlash` on redirect responses (TempData inspection) missing |
-| MIN-15 | Core | No `Back()` convenience method on `IInertia` — PHP has `Inertia::back($status, $headers, $fallback)` for redirect to previous URL; consumers can use `Request.Headers.Referer` directly |
+| MIN-12 | Props | No recursion into indexed arrays in PropsResolver (documented intentional divergence — will not fix) |
+| ~~MIN-13~~ | Testing | ~~`AssertInertiaFlash` on redirect responses missing~~ FIXED (Phase F): Added `AssertInertiaFlash(key, httpClient)` and `AssertInertiaFlash(key, expected, httpClient)` extensions that follow the redirect and assert flash on the resulting page. |
+| ~~MIN-15~~ | Core | ~~No `Back()` convenience method~~ FIXED (Phase F): Added `InertiaBackResult : IActionResult, IResult` with configurable status code. `IInertia.Back()` resolves URL from Referer with fallback. |
 
 ---
 
@@ -181,7 +162,7 @@ These are intentionally not ported — they are Laravel ecosystem idioms with C#
 - Artisan commands → No CLI planned
 - `Macroable` trait → Delegate-based extension
 - `Arrayable` / `Responsable` support → C# has no equivalents
-- `App::call()` DI in callables → Zero-parameter `Func<T>` design
+- `App::call()` DI in callables → `Func<IServiceProvider, T>` overloads (Phase F)
 - Mix manifest versioning → Manual `VersionProvider`
 - Config publishing → `appsettings.json` + Options pattern
 - `GuzzleHttp\Promise` support → `Task<T>` natively
@@ -229,14 +210,14 @@ Features that exist in the Inertia ecosystem as standalone packages, not part of
 14. ~~**IMP-09** — Broader status code derivation~~
 15. ~~**IMP-17** — SSR failure event notification~~
 
-### Phase E: Testing Package
-16. **IMP-13** — Async `AssertInertia` overload
-17. **IMP-14** — Wire `TestingEnsurePagesExist` into `AssertableInertia`
-18. **IMP-15** — `Scope()`, `First()`, `Each()`, `Etc()`
-19. **IMP-16** — Missing assertion methods
+### ~~Phase E: Testing Package~~ COMPLETE
+16. ~~**IMP-13** — Async `AssertInertia` overload~~
+17. ~~**IMP-14** — Wire `TestingEnsurePagesExist` into `AssertableInertia`~~
+18. ~~**IMP-15** — `Scope()`, `First()`, `Each()`, `Etc()`~~
+19. ~~**IMP-16** — Missing assertion methods~~
 
-### Phase F: API Surface & Minor Polish
-20. **IMP-18** — Expose `FlushShared()` on `IInertia` (trivial: interface addition + visibility change)
-21. **IMP-19** — Expose `GetVersion()` on `IInertia` (trivial: interface addition + visibility change)
-22. **MIN-15** — `Back()` convenience method
-23-34. All remaining MIN-* items
+### ~~Phase F: API Surface & Minor Polish~~ COMPLETE
+20. ~~**IMP-18** — Expose `FlushShared()` on `IInertia`~~
+21. ~~**IMP-19** — Expose `GetVersion()` on `IInertia`~~
+22. ~~**MIN-15** — `Back()` convenience method~~
+23-34. ~~All remaining MIN-* items (MIN-01–MIN-10, MIN-13)~~

@@ -78,7 +78,7 @@ internal sealed class InertiaMiddleware : IMiddleware
             var clientVersion = context.Request.Headers[InertiaHeaderNames.Version].FirstOrDefault() ?? "";
             if (clientVersion != factory.GetVersion())
             {
-                ReflashFlashData(factory);
+                factory.ReflashAllTempData();
                 SetVary(context.Response);
                 await HandleVersionChange(context);
                 return;
@@ -100,7 +100,7 @@ internal sealed class InertiaMiddleware : IMiddleware
 
         // 5. Reflash flash data on redirect
         if (isRedirect)
-            ReflashFlashData(factory);
+            factory.ReflashAllTempData();
 
         // 6. Early exit for non-Inertia requests
         if (!isInertia)
@@ -139,14 +139,7 @@ internal sealed class InertiaMiddleware : IMiddleware
         => resp.Headers.Location.FirstOrDefault()?.Contains('#') == true;
 
     private static void SetVary(HttpResponse response)
-        => response.Headers["Vary"] = InertiaHeaderNames.Inertia;
-
-    private static void ReflashFlashData(InertiaFactory factory)
-    {
-        var flashed = factory.GetFlashed();
-        if (flashed.Count > 0)
-            factory.Flash(flashed);
-    }
+        => response.Headers.Vary= InertiaHeaderNames.Inertia;
 
     private async Task HandleVersionChange(HttpContext ctx)
     {
@@ -182,7 +175,8 @@ internal sealed class InertiaMiddleware : IMiddleware
             }
             else
             {
-                ctx.Response.StatusCode = StatusCodes.Status204NoContent;
+                ctx.Response.StatusCode = StatusCodes.Status302Found;
+                ctx.Response.Headers.Location = "/";
             }
         }
     }

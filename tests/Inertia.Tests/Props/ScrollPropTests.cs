@@ -234,6 +234,37 @@ public class ScrollPropTests
         }
     }
 
+    public class FluentChaining
+    {
+        [Fact]
+        public void Append_WithDictionary_ReturnsScrollPropForChaining()
+        {
+            var prop = new ScrollProp<string>("value");
+
+            var result = prop.Append(new Dictionary<string, string> { ["items"] = "id" });
+
+            result.Should().BeOfType<ScrollProp<string>>();
+            result.Should().BeSameAs(prop);
+            var mergeable = (IMergeable)prop;
+            mergeable.AppendsAtPaths.Should().Contain("items");
+            mergeable.MatchesOn.Should().Contain("items.id");
+        }
+
+        [Fact]
+        public void Prepend_WithDictionary_ReturnsScrollPropForChaining()
+        {
+            var prop = new ScrollProp<string>("value");
+
+            var result = prop.Prepend(new Dictionary<string, string> { ["rows"] = "key" });
+
+            result.Should().BeOfType<ScrollProp<string>>();
+            result.Should().BeSameAs(prop);
+            var mergeable = (IMergeable)prop;
+            mergeable.PrependsAtPaths.Should().Contain("rows");
+            mergeable.MatchesOn.Should().Contain("rows.key");
+        }
+    }
+
     public class Interfaces
     {
         [Fact]

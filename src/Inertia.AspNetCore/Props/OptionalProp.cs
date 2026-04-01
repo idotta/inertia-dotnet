@@ -3,10 +3,12 @@ namespace Inertia.AspNetCore;
 /// <summary>
 /// A property only included when explicitly requested via partial reloads.
 /// </summary>
-public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable, IResolvableProp<T>
+public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable, IResolvableProp<T>, IServiceResolvableProp
 {
     private readonly Func<T>? _syncCallback;
     private readonly Func<Task<T>>? _asyncCallback;
+    private readonly Func<IServiceProvider, T>? _serviceCallback;
+    private readonly Func<IServiceProvider, Task<T>>? _asyncServiceCallback;
     private readonly OnceInfo _once = new();
 
     /// <summary>Initializes a new instance with a synchronous callback.</summary>
@@ -16,6 +18,22 @@ public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable, IResolvablePr
     /// <summary>Initializes a new instance with an asynchronous callback.</summary>
     /// <param name="asyncCallback">An async function that produces the value.</param>
     public OptionalProp(Func<Task<T>> asyncCallback) => _asyncCallback = asyncCallback;
+
+    /// <summary>Initializes a new instance with a synchronous service-provider callback.</summary>
+    /// <param name="serviceCallback">A function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    public OptionalProp(Func<IServiceProvider, T> serviceCallback)
+    {
+        ArgumentNullException.ThrowIfNull(serviceCallback);
+        _serviceCallback = serviceCallback;
+    }
+
+    /// <summary>Initializes a new instance with an asynchronous service-provider callback.</summary>
+    /// <param name="asyncServiceCallback">An async function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    public OptionalProp(Func<IServiceProvider, Task<T>> asyncServiceCallback)
+    {
+        ArgumentNullException.ThrowIfNull(asyncServiceCallback);
+        _asyncServiceCallback = asyncServiceCallback;
+    }
 
     /// <summary>Resolves the property value, awaiting async callbacks if present.</summary>
     public async Task<T> ResolveAsync()
@@ -27,6 +45,16 @@ public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable, IResolvablePr
 
     /// <inheritdoc />
     async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
+
+    // IServiceResolvableProp (explicit interface implementation)
+    bool IServiceResolvableProp.HasServiceCallback => _serviceCallback is not null || _asyncServiceCallback is not null;
+
+    async Task<object?> IServiceResolvableProp.ResolveWithServiceAsync(IServiceProvider serviceProvider)
+    {
+        if (_asyncServiceCallback is not null) return await _asyncServiceCallback(serviceProvider);
+        if (_serviceCallback is not null) return _serviceCallback(serviceProvider);
+        return await ResolveAsync();
+    }
 
     // IOnceable (explicit interface implementation)
     bool IOnceable.ShouldResolveOnce => _once.ShouldResolveOnce;
@@ -51,4 +79,6 @@ public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable, IResolvablePr
 
     /// <summary>Sets the time-to-live for the cached value in seconds.</summary>
     public OptionalProp<T> Until(int seconds) { _once.Until(seconds); return this; }
+    /// <summary>Sets the expiration time as an absolute UTC timestamp.</summary>
+    public OptionalProp<T> Until(DateTimeOffset expiresAt) { _once.Until(expiresAt); return this; }
 }

@@ -3,10 +3,12 @@ namespace Inertia.AspNetCore;
 /// <summary>
 /// A property excluded from initial page load, evaluated only when requested by the frontend.
 /// </summary>
-public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstLoad, IOnceable, IResolvableProp<T>
+public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstLoad, IOnceable, IResolvableProp<T>, IServiceResolvableProp
 {
     private readonly Func<T>? _syncCallback;
     private readonly Func<Task<T>>? _asyncCallback;
+    private readonly Func<IServiceProvider, T>? _serviceCallback;
+    private readonly Func<IServiceProvider, Task<T>>? _asyncServiceCallback;
     private DeferInfo _defer;
     private readonly OnceInfo _once = new();
 
@@ -26,6 +28,28 @@ public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstL
         _defer.Defer(group);
     }
 
+    /// <summary>Initializes a new <see cref="DeferProp{T}"/> with a synchronous service-provider callback.</summary>
+    /// <param name="serviceCallback">A function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <param name="group">The defer group name. Props in the same group are fetched together. Defaults to "default".</param>
+    public DeferProp(Func<IServiceProvider, T> serviceCallback, string? group = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceCallback);
+        _serviceCallback = serviceCallback;
+        _defer = new DeferInfo();
+        _defer.Defer(group);
+    }
+
+    /// <summary>Initializes a new <see cref="DeferProp{T}"/> with an asynchronous service-provider callback.</summary>
+    /// <param name="asyncServiceCallback">An async function that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <param name="group">The defer group name. Props in the same group are fetched together. Defaults to "default".</param>
+    public DeferProp(Func<IServiceProvider, Task<T>> asyncServiceCallback, string? group = null)
+    {
+        ArgumentNullException.ThrowIfNull(asyncServiceCallback);
+        _asyncServiceCallback = asyncServiceCallback;
+        _defer = new DeferInfo();
+        _defer.Defer(group);
+    }
+
     /// <summary>Resolves the property value, awaiting async callbacks if present.</summary>
     public async Task<T> ResolveAsync()
     {
@@ -36,6 +60,16 @@ public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstL
 
     /// <inheritdoc />
     async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
+
+    // IServiceResolvableProp (explicit interface implementation)
+    bool IServiceResolvableProp.HasServiceCallback => _serviceCallback is not null || _asyncServiceCallback is not null;
+
+    async Task<object?> IServiceResolvableProp.ResolveWithServiceAsync(IServiceProvider serviceProvider)
+    {
+        if (_asyncServiceCallback is not null) return await _asyncServiceCallback(serviceProvider);
+        if (_serviceCallback is not null) return _serviceCallback(serviceProvider);
+        return await ResolveAsync();
+    }
 
     /// <inheritdoc />
     bool IDeferrable.ShouldDefer => _defer.ShouldDefer;
@@ -87,4 +121,6 @@ public sealed class DeferProp<T> : MergeablePropBase, IDeferrable, IIgnoreFirstL
     public DeferProp<T> Until(TimeSpan delay) { _once.Until(delay); return this; }
     /// <summary>Sets the time-to-live for the cached value in seconds.</summary>
     public DeferProp<T> Until(int seconds) { _once.Until(seconds); return this; }
+    /// <summary>Sets the expiration time as an absolute UTC timestamp.</summary>
+    public DeferProp<T> Until(DateTimeOffset expiresAt) { _once.Until(expiresAt); return this; }
 }

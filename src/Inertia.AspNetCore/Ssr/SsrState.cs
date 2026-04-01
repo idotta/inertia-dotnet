@@ -34,8 +34,10 @@ internal sealed class SsrState
     /// <summary>Returns whether the given request path is excluded from SSR.</summary>
     public bool IsPathExcluded(string requestPath)
     {
-        foreach (var pattern in _excludedPaths)
+        foreach (var raw in _excludedPaths)
         {
+            var pattern = NormalizePattern(raw);
+
             if (pattern.EndsWith("/*"))
             {
                 var prefix = pattern[..^2];
@@ -49,6 +51,16 @@ internal sealed class SsrState
         }
 
         return false;
+    }
+
+    private static string NormalizePattern(string pattern)
+    {
+        if (pattern.Contains("://", StringComparison.Ordinal))
+        {
+            try { return new Uri(pattern).AbsolutePath; }
+            catch (UriFormatException) { return pattern; }
+        }
+        return pattern;
     }
 
     /// <summary>

@@ -35,6 +35,18 @@ public static class Prop
     /// <returns>A new <see cref="AlwaysProp{T}"/> instance.</returns>
     public static AlwaysProp<T> Always<T>(Func<Task<T>> callback) => new(callback);
 
+    /// <summary>Creates an <see cref="AlwaysProp{T}"/> with a synchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="serviceCallback">A callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="AlwaysProp{T}"/> instance.</returns>
+    public static AlwaysProp<T> Always<T>(Func<IServiceProvider, T> serviceCallback) => new(serviceCallback);
+
+    /// <summary>Creates an <see cref="AlwaysProp{T}"/> with an asynchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="asyncServiceCallback">An async callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="AlwaysProp{T}"/> instance.</returns>
+    public static AlwaysProp<T> Always<T>(Func<IServiceProvider, Task<T>> asyncServiceCallback) => new(asyncServiceCallback);
+
     // Optional — only included in partial reloads when explicitly requested.
 
     /// <summary>Creates an <see cref="OptionalProp{T}"/> with a synchronous callback.</summary>
@@ -48,6 +60,18 @@ public static class Prop
     /// <param name="callback">The async callback to invoke when requested via partial reload.</param>
     /// <returns>A new <see cref="OptionalProp{T}"/> instance.</returns>
     public static OptionalProp<T> Optional<T>(Func<Task<T>> callback) => new(callback);
+
+    /// <summary>Creates an <see cref="OptionalProp{T}"/> with a synchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="serviceCallback">A callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="OptionalProp{T}"/> instance.</returns>
+    public static OptionalProp<T> Optional<T>(Func<IServiceProvider, T> serviceCallback) => new(serviceCallback);
+
+    /// <summary>Creates an <see cref="OptionalProp{T}"/> with an asynchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="asyncServiceCallback">An async callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="OptionalProp{T}"/> instance.</returns>
+    public static OptionalProp<T> Optional<T>(Func<IServiceProvider, Task<T>> asyncServiceCallback) => new(asyncServiceCallback);
 
     // Defer — excluded from initial page load, fetched on demand by the client.
 
@@ -64,6 +88,20 @@ public static class Prop
     /// <param name="group">The defer group name. Props in the same group are fetched together. Defaults to "default".</param>
     /// <returns>A new <see cref="DeferProp{T}"/> instance.</returns>
     public static DeferProp<T> Defer<T>(Func<Task<T>> callback, string? group = null) => new(callback, group);
+
+    /// <summary>Creates a <see cref="DeferProp{T}"/> with a synchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="serviceCallback">A callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <param name="group">The defer group name. Props in the same group are fetched together. Defaults to "default".</param>
+    /// <returns>A new <see cref="DeferProp{T}"/> instance.</returns>
+    public static DeferProp<T> Defer<T>(Func<IServiceProvider, T> serviceCallback, string? group = null) => new(serviceCallback, group);
+
+    /// <summary>Creates a <see cref="DeferProp{T}"/> with an asynchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="asyncServiceCallback">An async callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <param name="group">The defer group name. Props in the same group are fetched together. Defaults to "default".</param>
+    /// <returns>A new <see cref="DeferProp{T}"/> instance.</returns>
+    public static DeferProp<T> Defer<T>(Func<IServiceProvider, Task<T>> asyncServiceCallback, string? group = null) => new(asyncServiceCallback, group);
 
     // Merge — merged with existing client-side data during partial reloads.
 
@@ -85,6 +123,18 @@ public static class Prop
     /// <returns>A new <see cref="MergeProp{T}"/> instance with merging enabled.</returns>
     public static MergeProp<T> Merge<T>(Func<Task<T>> callback) => new(callback);
 
+    /// <summary>Creates a <see cref="MergeProp{T}"/> with a synchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="serviceCallback">A callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="MergeProp{T}"/> instance with merging enabled.</returns>
+    public static MergeProp<T> Merge<T>(Func<IServiceProvider, T> serviceCallback) => new(serviceCallback);
+
+    /// <summary>Creates a <see cref="MergeProp{T}"/> with an asynchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="asyncServiceCallback">An async callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="MergeProp{T}"/> instance with merging enabled.</returns>
+    public static MergeProp<T> Merge<T>(Func<IServiceProvider, Task<T>> asyncServiceCallback) => new(asyncServiceCallback);
+
     // DeepMerge — convenience for Merge + DeepMerge in a single call.
 
     /// <summary>Creates a <see cref="MergeProp{T}"/> with a static value and deep merging enabled.</summary>
@@ -105,6 +155,18 @@ public static class Prop
     /// <returns>A new <see cref="MergeProp{T}"/> instance with deep merging enabled.</returns>
     public static MergeProp<T> DeepMerge<T>(Func<Task<T>> callback) => new MergeProp<T>(callback).DeepMerge();
 
+    /// <summary>Creates a <see cref="MergeProp{T}"/> with a synchronous service-provider callback and deep merging enabled.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="serviceCallback">A callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="MergeProp{T}"/> instance with deep merging enabled.</returns>
+    public static MergeProp<T> DeepMerge<T>(Func<IServiceProvider, T> serviceCallback) => new MergeProp<T>(serviceCallback).DeepMerge();
+
+    /// <summary>Creates a <see cref="MergeProp{T}"/> with an asynchronous service-provider callback and deep merging enabled.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="asyncServiceCallback">An async callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="MergeProp{T}"/> instance with deep merging enabled.</returns>
+    public static MergeProp<T> DeepMerge<T>(Func<IServiceProvider, Task<T>> asyncServiceCallback) => new MergeProp<T>(asyncServiceCallback).DeepMerge();
+
     // Once — resolved once, cached on the client.
 
     /// <summary>Creates an <see cref="OnceProp{T}"/> with a synchronous callback.</summary>
@@ -118,6 +180,18 @@ public static class Prop
     /// <param name="callback">The async callback to invoke on first resolution.</param>
     /// <returns>A new <see cref="OnceProp{T}"/> instance with once-resolution enabled.</returns>
     public static OnceProp<T> Once<T>(Func<Task<T>> callback) => new(callback);
+
+    /// <summary>Creates an <see cref="OnceProp{T}"/> with a synchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="serviceCallback">A callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="OnceProp{T}"/> instance with once-resolution enabled.</returns>
+    public static OnceProp<T> Once<T>(Func<IServiceProvider, T> serviceCallback) => new(serviceCallback);
+
+    /// <summary>Creates an <see cref="OnceProp{T}"/> with an asynchronous service-provider callback.</summary>
+    /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
+    /// <param name="asyncServiceCallback">An async callback that receives an <see cref="IServiceProvider"/> and produces the value.</param>
+    /// <returns>A new <see cref="OnceProp{T}"/> instance with once-resolution enabled.</returns>
+    public static OnceProp<T> Once<T>(Func<IServiceProvider, Task<T>> asyncServiceCallback) => new(asyncServiceCallback);
 
     // Scroll — paginated/infinite scroll data with merge capabilities.
 
@@ -147,4 +221,22 @@ public static class Prop
     /// <returns>A new <see cref="ScrollProp{T}"/> instance with merging enabled.</returns>
     public static ScrollProp<T> Scroll<T>(Func<Task<T>> callback, string wrapper = "data", IScrollMetadataProvider? metadata = null)
         => new(callback, wrapper, metadata);
+
+    /// <summary>Creates a <see cref="ScrollProp{T}"/> with a synchronous callback and a metadata factory.</summary>
+    /// <typeparam name="T">The type of the scroll data produced by the callback.</typeparam>
+    /// <param name="callback">The callback to invoke when the property is resolved.</param>
+    /// <param name="wrapper">The wrapper path used for merge append/prepend operations.</param>
+    /// <param name="metadataFactory">A factory that receives the resolved value and returns an <see cref="IScrollMetadataProvider"/>.</param>
+    /// <returns>A new <see cref="ScrollProp{T}"/> instance with merging enabled.</returns>
+    public static ScrollProp<T> Scroll<T>(Func<T> callback, string wrapper, Func<object?, IScrollMetadataProvider> metadataFactory)
+        => new(callback, wrapper, metadataFactory);
+
+    /// <summary>Creates a <see cref="ScrollProp{T}"/> with an asynchronous callback and a metadata factory.</summary>
+    /// <typeparam name="T">The type of the scroll data produced by the callback.</typeparam>
+    /// <param name="callback">The async callback to invoke when the property is resolved.</param>
+    /// <param name="wrapper">The wrapper path used for merge append/prepend operations.</param>
+    /// <param name="metadataFactory">A factory that receives the resolved value and returns an <see cref="IScrollMetadataProvider"/>.</param>
+    /// <returns>A new <see cref="ScrollProp{T}"/> instance with merging enabled.</returns>
+    public static ScrollProp<T> Scroll<T>(Func<Task<T>> callback, string wrapper, Func<object?, IScrollMetadataProvider> metadataFactory)
+        => new(callback, wrapper, metadataFactory);
 }

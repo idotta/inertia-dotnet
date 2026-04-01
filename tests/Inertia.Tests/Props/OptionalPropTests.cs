@@ -132,6 +132,17 @@ public class OptionalPropTests
             var onceable = (IOnceable)prop;
             onceable.ExpiresAt.Should().NotBeNull();
         }
+
+        [Fact]
+        public void Until_WithDateTimeOffset_SetsExpiration()
+        {
+            var prop = new OptionalProp<string>(() => "value");
+
+            prop.Until(DateTimeOffset.UtcNow.AddMinutes(10));
+
+            var onceable = (IOnceable)prop;
+            onceable.ExpiresAt.Should().NotBeNull();
+        }
     }
 
     public class FluentChaining

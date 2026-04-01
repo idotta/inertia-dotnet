@@ -11,6 +11,10 @@ internal sealed class SsrBundleDetector
     /// <summary>Default search paths (ASP.NET Core equivalents of Laravel's bootstrap/ssr paths).</summary>
     internal static readonly string[] DefaultPaths =
     [
+        "wwwroot/ssr/ssr.js",
+        "wwwroot/ssr/ssr.mjs",
+        "wwwroot/ssr/app.js",
+        "wwwroot/ssr/app.mjs",
         "wwwroot/js/ssr.js",
         "wwwroot/js/ssr.mjs",
         "wwwroot/js/app.js",

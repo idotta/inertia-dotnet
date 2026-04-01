@@ -205,5 +205,31 @@ public class PropTests
             var mergeable = (IMergeable)result;
             mergeable.AppendsAtPaths.Should().Contain("items");
         }
+
+        [Fact]
+        public void Scroll_WithSyncCallbackAndMetadataFactory_CreatesScrollProp()
+        {
+            var result = Prop.Scroll<string>(
+                () => "data",
+                "items",
+                resolved => new ScrollMetadata("page", previousPage: 0, nextPage: 2, currentPage: 1));
+
+            result.Should().BeOfType<ScrollProp<string>>();
+            var mergeable = (IMergeable)result;
+            mergeable.ShouldMerge.Should().BeTrue();
+        }
+
+        [Fact]
+        public void Scroll_WithAsyncCallbackAndMetadataFactory_CreatesScrollProp()
+        {
+            var result = Prop.Scroll<string>(
+                () => Task.FromResult("data"),
+                "items",
+                resolved => new ScrollMetadata("page", previousPage: 0, nextPage: 2, currentPage: 1));
+
+            result.Should().BeOfType<ScrollProp<string>>();
+            var mergeable = (IMergeable)result;
+            mergeable.ShouldMerge.Should().BeTrue();
+        }
     }
 }

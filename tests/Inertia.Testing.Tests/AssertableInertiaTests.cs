@@ -706,7 +706,578 @@ public class AssertableInertiaTests
         }
     }
 
-    // ---- Group 8: Fluent Chaining ----
+    // ---- Group 8: Additional Assertions (WhereNot, WhereType, WhereContains, HasAny) ----
+    public class AdditionalAssertions
+    {
+        private static string BuildPageJson(string propsJson = "{}")
+        {
+            return $$"""{"component":"Test","url":"/test","version":"1.0","props":{{propsJson}}}""";
+        }
+
+        [Fact]
+        public void WhereNot_DifferentValue_ReturnsSelf()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"name":"John"}"""));
+
+            var result = assertable.WhereNot("name", "Jane");
+
+            result.Should().BeSameAs(assertable);
+        }
+
+        [Fact]
+        public void WhereNot_MatchingValue_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"name":"John"}"""));
+
+            var act = () => assertable.WhereNot("name", "John");
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void WhereNot_NonExistingPath_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(BuildPageJson());
+
+            var act = () => assertable.WhereNot("missing", "value");
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void WhereType_String_Matches()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"name":"John"}"""));
+
+            assertable.WhereType("name", "string");
+        }
+
+        [Fact]
+        public void WhereType_Integer_Matches()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"age":30}"""));
+
+            assertable.WhereType("age", "integer");
+        }
+
+        [Fact]
+        public void WhereType_Number_MatchesDecimal()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"score":9.5}"""));
+
+            assertable.WhereType("score", "number");
+        }
+
+        [Fact]
+        public void WhereType_Boolean_Matches()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"active":true}"""));
+
+            assertable.WhereType("active", "boolean");
+        }
+
+        [Fact]
+        public void WhereType_Array_Matches()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"items":[1,2,3]}"""));
+
+            assertable.WhereType("items", "array");
+        }
+
+        [Fact]
+        public void WhereType_Object_Matches()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John"}}"""));
+
+            assertable.WhereType("user", "object");
+        }
+
+        [Fact]
+        public void WhereType_Null_Matches()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"value":null}"""));
+
+            assertable.WhereType("value", "null");
+        }
+
+        [Fact]
+        public void WhereType_Mismatch_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"name":"John"}"""));
+
+            var act = () => assertable.WhereType("name", "integer");
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void WhereType_UnknownType_ThrowsArgumentException()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"name":"John"}"""));
+
+            var act = () => assertable.WhereType("name", "custom");
+
+            act.Should().Throw<ArgumentException>();
+        }
+
+        [Fact]
+        public void WhereContains_ArrayContainsValue_ReturnsSelf()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"tags":["a","b","c"]}"""));
+
+            var result = assertable.WhereContains("tags", "b");
+
+            result.Should().BeSameAs(assertable);
+        }
+
+        [Fact]
+        public void WhereContains_ArrayMissing_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"tags":["a","b","c"]}"""));
+
+            var act = () => assertable.WhereContains("tags", "z");
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void WhereContains_StringContains_ReturnsSelf()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"message":"hello world"}"""));
+
+            var result = assertable.WhereContains("message", "world");
+
+            result.Should().BeSameAs(assertable);
+        }
+
+        [Fact]
+        public void WhereContains_StringMissing_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"message":"hello world"}"""));
+
+            var act = () => assertable.WhereContains("message", "xyz");
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void WhereContains_NonArrayOrString_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"count":42}"""));
+
+            var act = () => assertable.WhereContains("count", 42);
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void HasAny_OneExists_ReturnsSelf()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"name":"John"}"""));
+
+            var result = assertable.HasAny("missing", "name");
+
+            result.Should().BeSameAs(assertable);
+        }
+
+        [Fact]
+        public void HasAny_NoneExist_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(BuildPageJson());
+
+            var act = () => assertable.HasAny("a", "b", "c");
+
+            act.Should().Throw<Exception>();
+        }
+    }
+
+    // ---- Group 9: Scoping Assertions ----
+    public class ScopingAssertions
+    {
+        private static string BuildPageJson(string propsJson = "{}")
+        {
+            return $$"""{"component":"Test","url":"/test","version":"1.0","props":{{propsJson}}}""";
+        }
+
+        [Fact]
+        public void Scope_ValidPath_ScopesToNestedObject()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John","age":30}}"""));
+
+            assertable.Scope("user", scoped =>
+            {
+                scoped.Where("name", "John");
+                scoped.Where("age", 30);
+            });
+        }
+
+        [Fact]
+        public void Scope_NonExistingPath_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(BuildPageJson());
+
+            var act = () => assertable.Scope("missing", _ => { });
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void Scope_InteractionTracking_AllKeysInteracted_Passes()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John","age":30}}"""));
+
+            var act = () => assertable.Scope("user", scoped =>
+            {
+                scoped.Has("name");
+                scoped.Has("age");
+            });
+
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Scope_InteractionTracking_MissingKeys_FailsWithUninteractedList()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John","age":30,"email":"j@x.com"}}"""));
+
+            var act = () => assertable.Scope("user", scoped =>
+            {
+                scoped.Has("name");
+                // age and email are not interacted
+            });
+
+            act.Should().Throw<Exception>().WithMessage("*Unexpected properties*age*email*");
+        }
+
+        [Fact]
+        public void Scope_Etc_DisablesInteractionTracking()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John","age":30,"email":"j@x.com"}}"""));
+
+            var act = () => assertable.Scope("user", scoped =>
+            {
+                scoped.Has("name");
+                scoped.Etc();
+            });
+
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Scope_NestedScopes_Work()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"profile":{"bio":"hello"}}}"""));
+
+            assertable.Scope("user", userScope =>
+            {
+                userScope.Scope("profile", profileScope =>
+                {
+                    profileScope.Where("bio", "hello");
+                });
+            });
+        }
+
+        [Fact]
+        public void Scope_ReturnsSelf()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John"}}"""));
+
+            var result = assertable.Scope("user", scoped =>
+            {
+                scoped.Has("name");
+            });
+
+            result.Should().BeSameAs(assertable);
+        }
+
+        [Fact]
+        public void First_ArrayPath_ScopesToFirstElement()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"users":[{"name":"Alice"},{"name":"Bob"}]}"""));
+
+            assertable.First("users", scoped =>
+            {
+                scoped.Where("name", "Alice");
+            });
+        }
+
+        [Fact]
+        public void First_EmptyArray_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"users":[]}"""));
+
+            var act = () => assertable.First("users", _ => { });
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void First_NonArrayPath_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John"}}"""));
+
+            var act = () => assertable.First("user", _ => { });
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void First_NoPath_ScopesToCurrentArray()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"users":[{"id":1,"name":"Alice"},{"id":2,"name":"Bob"}]}"""));
+
+            assertable.Scope("users", arrayScope =>
+            {
+                arrayScope.First(firstScope =>
+                {
+                    firstScope.Where("id", 1);
+                    firstScope.Where("name", "Alice");
+                });
+                arrayScope.Etc();
+            });
+        }
+
+        [Fact]
+        public void Each_ArrayPath_IteratesAllElements()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"users":[{"active":true},{"active":true}]}"""));
+
+            var count = 0;
+            assertable.Each("users", scoped =>
+            {
+                scoped.Where("active", true);
+                count++;
+            });
+
+            count.Should().Be(2);
+        }
+
+        [Fact]
+        public void Each_EmptyArray_NoOp()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"users":[]}"""));
+
+            var count = 0;
+            assertable.Each("users", _ => count++);
+
+            count.Should().Be(0);
+        }
+
+        [Fact]
+        public void Each_NonArrayPath_Fails()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"user":{"name":"John"}}"""));
+
+            var act = () => assertable.Each("user", _ => { });
+
+            act.Should().Throw<Exception>();
+        }
+
+        [Fact]
+        public void Each_NoPath_IteratesCurrentArray()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"items":[{"type":"a"},{"type":"b"}]}"""));
+
+            var types = new List<string>();
+            assertable.Scope("items", arrayScope =>
+            {
+                arrayScope.Each(itemScope =>
+                {
+                    types.Add(itemScope.Prop("type").GetString()!);
+                    itemScope.Etc();
+                });
+                arrayScope.Etc();
+            });
+
+            types.Should().BeEquivalentTo(["a", "b"]);
+        }
+
+        [Fact]
+        public void Each_InteractionTracking_PerElement()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"users":[{"id":1,"name":"a"},{"id":2,"name":"b"}]}"""));
+
+            var act = () => assertable.Each("users", scoped =>
+            {
+                scoped.Has("id");
+                // name not interacted — should fail
+            });
+
+            act.Should().Throw<Exception>().WithMessage("*name*");
+        }
+
+        [Fact]
+        public void Etc_ReturnsSelf()
+        {
+            var assertable = AssertableInertia.FromJson(BuildPageJson());
+
+            var result = assertable.Etc();
+
+            result.Should().BeSameAs(assertable);
+        }
+
+        [Fact]
+        public void TopLevel_NoInteractionTracking()
+        {
+            var assertable = AssertableInertia.FromJson(
+                BuildPageJson("""{"name":"John","age":30,"extra":"data"}"""));
+
+            // Only asserting on "name" — should not fail because top-level has no interaction tracking
+            var act = () => assertable.Has("name");
+
+            act.Should().NotThrow();
+        }
+    }
+
+    // ---- Group 10: Component File Existence ----
+    [Collection("PageExistence")]
+    public class ComponentFileExistence : IDisposable
+    {
+        private readonly string _tempDir;
+
+        public ComponentFileExistence()
+        {
+            AssertableInertia.Configure((AssertableInertia.PageExistenceConfig?)null);
+            _tempDir = Path.Combine(Path.GetTempPath(), $"inertia_test_{Guid.NewGuid():N}");
+            Directory.CreateDirectory(_tempDir);
+        }
+
+        public void Dispose()
+        {
+            AssertableInertia.Configure((AssertableInertia.PageExistenceConfig?)null);
+            if (Directory.Exists(_tempDir))
+                Directory.Delete(_tempDir, recursive: true);
+        }
+
+        private static string BuildPageJson(string component = "Test")
+        {
+            return $$$"""{"component":"{{{component}}}","url":"/test","version":"1.0","props":{}}""";
+        }
+
+        [Fact]
+        public void Component_ShouldExistTrue_FileExists_Passes()
+        {
+            File.WriteAllText(Path.Combine(_tempDir, "Dashboard.vue"), "");
+            AssertableInertia.Configure(new AssertableInertia.PageExistenceConfig(
+                true, [_tempDir], ["vue"]));
+
+            var assertable = AssertableInertia.FromJson(BuildPageJson("Dashboard"));
+
+            var act = () => assertable.Component("Dashboard", shouldExist: true);
+
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Component_ShouldExistTrue_FileNotFound_Fails()
+        {
+            AssertableInertia.Configure(new AssertableInertia.PageExistenceConfig(
+                true, [_tempDir], ["vue"]));
+
+            var assertable = AssertableInertia.FromJson(BuildPageJson("Missing"));
+
+            var act = () => assertable.Component("Missing", shouldExist: true);
+
+            act.Should().Throw<Exception>().WithMessage("*does not exist*");
+        }
+
+        [Fact]
+        public void Component_ShouldExistFalse_SkipsFileCheck()
+        {
+            AssertableInertia.Configure(new AssertableInertia.PageExistenceConfig(
+                true, [_tempDir], ["vue"]));
+
+            var assertable = AssertableInertia.FromJson(BuildPageJson("Missing"));
+
+            var act = () => assertable.Component("Missing", shouldExist: false);
+
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Component_ShouldExistNull_ConfigEnabled_ChecksFile()
+        {
+            AssertableInertia.Configure(new AssertableInertia.PageExistenceConfig(
+                true, [_tempDir], ["vue"]));
+
+            var assertable = AssertableInertia.FromJson(BuildPageJson("Missing"));
+
+            var act = () => assertable.Component("Missing");
+
+            act.Should().Throw<Exception>().WithMessage("*does not exist*");
+        }
+
+        [Fact]
+        public void Component_ShouldExistNull_ConfigDisabled_SkipsCheck()
+        {
+            AssertableInertia.Configure(new AssertableInertia.PageExistenceConfig(
+                false, [_tempDir], ["vue"]));
+
+            var assertable = AssertableInertia.FromJson(BuildPageJson("Missing"));
+
+            var act = () => assertable.Component("Missing");
+
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Component_ShouldExistNull_NoConfig_SkipsCheck()
+        {
+            // No Configure() call — defaults to no check
+            var assertable = AssertableInertia.FromJson(BuildPageJson("Missing"));
+
+            var act = () => assertable.Component("Missing");
+
+            act.Should().NotThrow();
+        }
+
+        [Fact]
+        public void Component_ShouldExistTrue_NoPagePaths_FailsWithMessage()
+        {
+            AssertableInertia.Configure(new AssertableInertia.PageExistenceConfig(
+                true, [], ["vue"]));
+
+            var assertable = AssertableInertia.FromJson(BuildPageJson("Test"));
+
+            var act = () => assertable.Component("Test", shouldExist: true);
+
+            act.Should().Throw<Exception>().WithMessage("*PagePaths*");
+        }
+    }
+
+    // ---- Group 11: Fluent Chaining ----
     public class FluentChaining
     {
         [Fact]

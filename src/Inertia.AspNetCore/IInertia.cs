@@ -19,6 +19,14 @@ public interface IInertia
     /// <param name="url">The target URL.</param>
     InertiaLocationResult Location(string url);
 
+    /// <summary>
+    /// Redirects back to the previous URL using the Referer header,
+    /// or falls back to <paramref name="fallbackUrl"/> (default "/").
+    /// </summary>
+    /// <param name="statusCode">The HTTP redirect status code. Defaults to 302.</param>
+    /// <param name="fallbackUrl">The URL to use when no Referer header is present. Defaults to "/".</param>
+    InertiaBackResult Back(int statusCode = 302, string? fallbackUrl = null);
+
     /// <summary>Shares a single prop with all subsequent Inertia responses in this request.</summary>
     /// <param name="key">The prop key.</param>
     /// <param name="value">The prop value.</param>
@@ -32,10 +40,23 @@ public interface IInertia
     /// <param name="provider">The property provider.</param>
     void Share(IInertiaPropertyProvider provider);
 
+    /// <summary>
+    /// Shares all public properties of the given object as individual shared props.
+    /// Use with anonymous objects: <c>inertia.Share(new { Auth = user, Locale = "en" })</c>.
+    /// </summary>
+    /// <param name="props">An object whose public properties become shared props.</param>
+    void Share(object props);
+
     /// <summary>Returns a single shared prop by key, with optional dot-notation traversal for nested values.</summary>
     /// <param name="key">The prop key. Supports dot-notation (e.g., "user.profile.name") for nested lookups.</param>
     /// <param name="defaultValue">The value to return if the key is not found.</param>
     object? GetShared(string key, object? defaultValue = null);
+
+    /// <summary>Clears all shared props and providers for this request scope.</summary>
+    void FlushShared();
+
+    /// <summary>Returns the resolved asset version for this request.</summary>
+    string GetVersion();
 
     /// <summary>Creates an <see cref="OnceProp{T}"/> from the callback and shares it under the given key.</summary>
     /// <typeparam name="T">The type of the value produced by the callback.</typeparam>
