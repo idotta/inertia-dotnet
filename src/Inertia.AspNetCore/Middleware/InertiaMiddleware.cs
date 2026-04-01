@@ -80,13 +80,13 @@ internal sealed class InertiaMiddleware : IMiddleware
             {
                 factory.ReflashAllTempData();
                 SetVary(context.Response);
-                await HandleVersionChange(context);
+                await HandleVersionChange(context).ConfigureAwait(false);
                 return;
             }
         }
 
         // --- EXECUTE DOWNSTREAM ---
-        await next(context);
+        await next(context).ConfigureAwait(false);
 
         // --- POST-PIPELINE ---
 
@@ -98,9 +98,9 @@ internal sealed class InertiaMiddleware : IMiddleware
         var statusCode = context.Response.StatusCode;
         var isRedirect = statusCode is >= 300 and < 400;
 
-        // 5. Reflash flash data on redirect
+        // 5. Reflash Inertia-specific TempData on redirect (not ALL keys — matches PHP selective reflash)
         if (isRedirect)
-            factory.ReflashAllTempData();
+            factory.ReflashInertiaTempData();
 
         // 6. Early exit for non-Inertia requests
         if (!isInertia)
@@ -109,7 +109,7 @@ internal sealed class InertiaMiddleware : IMiddleware
         // 7. Empty response (2xx, no body written)
         if (statusCode is >= 200 and < 300 && !context.Response.HasStarted)
         {
-            await HandleEmptyResponse(context);
+            await HandleEmptyResponse(context).ConfigureAwait(false);
             return;
         }
 
@@ -139,19 +139,19 @@ internal sealed class InertiaMiddleware : IMiddleware
         => resp.Headers.Location.FirstOrDefault()?.Contains('#') == true;
 
     private static void SetVary(HttpResponse response)
-        => response.Headers.Vary= InertiaHeaderNames.Inertia;
+        => response.Headers.Vary = InertiaHeaderNames.Inertia;
 
     private async Task HandleVersionChange(HttpContext ctx)
     {
         if (_options.OnVersionChange is { } handler)
         {
             var result = handler(ctx);
-            await result.ExecuteAsync(ctx);
+            await result.ExecuteAsync(ctx).ConfigureAwait(false);
         }
         else
         {
-            // Default: 409 Conflict + X-Inertia-Location = current URL
-            var url = $"{ctx.Request.Path}{ctx.Request.QueryString}";
+            // Default: 409 Conflict + X-Inertia-Location = current URL (including PathBase)
+            var url = $"{ctx.Request.PathBase}{ctx.Request.Path}{ctx.Request.QueryString}";
             ctx.Response.StatusCode = StatusCodes.Status409Conflict;
             ctx.Response.Headers[InertiaHeaderNames.Location] = url;
         }
@@ -162,7 +162,7 @@ internal sealed class InertiaMiddleware : IMiddleware
         if (_options.OnEmptyResponse is { } handler)
         {
             var result = handler(ctx);
-            await result.ExecuteAsync(ctx);
+            await result.ExecuteAsync(ctx).ConfigureAwait(false);
         }
         else
         {

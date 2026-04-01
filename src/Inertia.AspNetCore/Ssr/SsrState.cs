@@ -73,7 +73,7 @@ internal sealed class SsrState
         {
             _dispatched = true;
             if (_page is not null)
-                _response = await _gateway.DispatchAsync(_page, cancellationToken);
+                _response = await _gateway.DispatchAsync(_page, cancellationToken).ConfigureAwait(false);
         }
 
         return _response;

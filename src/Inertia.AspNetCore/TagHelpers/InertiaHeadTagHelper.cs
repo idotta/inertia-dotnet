@@ -28,7 +28,7 @@ public sealed class InertiaHeadTagHelper : TagHelper
 
         // Resolve scoped SsrState from RequestServices (internal type, not constructor-injectable)
         var ssrState = ViewContext.HttpContext.RequestServices.GetService<SsrState>();
-        var ssrResponse = ssrState is not null ? await ssrState.DispatchAsync() : null;
+        var ssrResponse = ssrState is not null ? await ssrState.DispatchAsync().ConfigureAwait(false) : null;
 
         if (ssrResponse is not null)
         {
@@ -38,7 +38,7 @@ public sealed class InertiaHeadTagHelper : TagHelper
         else
         {
             // CSR fallback: render child content (slot)
-            var childContent = await output.GetChildContentAsync();
+            var childContent = await output.GetChildContentAsync().ConfigureAwait(false);
             output.Content.SetHtmlContent(childContent);
         }
     }

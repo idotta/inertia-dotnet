@@ -240,6 +240,23 @@ public class InertiaMiddlewareTests
         }
 
         [Fact]
+        public async Task InvokeAsync_VersionMismatch_OnGet_IncludesPathBaseInLocation()
+        {
+            var (middleware, _, ctx) = CreateMiddleware(o =>
+                o.VersionProvider = _ => "v2");
+            SetInertiaHeaders(ctx, "v1");
+            ctx.Request.Method = HttpMethods.Get;
+            ctx.Request.PathBase = "/app";
+            ctx.Request.Path = "/dashboard";
+            ctx.Request.QueryString = new QueryString("?page=1");
+
+            await middleware.InvokeAsync(ctx, NoOpNext);
+
+            ctx.Response.StatusCode.Should().Be(StatusCodes.Status409Conflict);
+            ctx.Response.Headers[InertiaHeaderNames.Location].ToString().Should().Be("/app/dashboard?page=1");
+        }
+
+        [Fact]
         public async Task InvokeAsync_VersionMismatch_OnPost_DoesNotCheck()
         {
             var (middleware, _, ctx) = CreateMiddleware(o =>
@@ -642,7 +659,7 @@ public class InertiaMiddlewareTests
     public class FlashDataReflashing
     {
         [Fact]
-        public async Task InvokeAsync_OnRedirect_KeepsAllTempData()
+        public async Task InvokeAsync_OnRedirect_KeepsOnlyInertiaTempData()
         {
             var options = new InertiaOptions();
             var httpContext = new DefaultHttpContext();
@@ -650,6 +667,9 @@ public class InertiaMiddlewareTests
             accessor.HttpContext.Returns(httpContext);
 
             var tempData = Substitute.For<ITempDataDictionary>();
+            tempData.ContainsKey(InertiaSessionKeys.FlashData).Returns(true);
+            tempData.ContainsKey(InertiaSessionKeys.ClearHistory).Returns(false);
+            tempData.ContainsKey(InertiaSessionKeys.PreserveFragment).Returns(false);
             var tempDataFactory = Substitute.For<ITempDataDictionaryFactory>();
             tempDataFactory.GetTempData(httpContext).Returns(tempData);
 
@@ -663,8 +683,9 @@ public class InertiaMiddlewareTests
 
             await middleware.InvokeAsync(httpContext, RedirectNext(302, "/target"));
 
-            // Verify Keep() was called with no arguments (retains ALL TempData keys)
-            tempData.Received(1).Keep();
+            // Verify only Inertia keys are kept (selective reflash), NOT Keep() with no args
+            tempData.Received(1).Keep(InertiaSessionKeys.FlashData);
+            tempData.DidNotReceive().Keep();
         }
 
         [Fact]

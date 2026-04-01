@@ -175,7 +175,7 @@ public sealed class InertiaResponse : IActionResult, IResult
 
     private async Task Execute(HttpContext httpContext)
     {
-        var page = await BuildPageAsync(httpContext);
+        var page = await BuildPageAsync(httpContext).ConfigureAwait(false);
 
         if (httpContext.Request.Headers.ContainsKey(InertiaHeaderNames.Inertia))
         {
@@ -185,7 +185,7 @@ public sealed class InertiaResponse : IActionResult, IResult
             httpContext.Response.Headers[InertiaHeaderNames.Inertia] = "true";
             httpContext.Response.ContentType = "application/json";
             var json = page.ToJson(_jsonOptions);
-            await httpContext.Response.WriteAsync(json);
+            await httpContext.Response.WriteAsync(json).ConfigureAwait(false);
         }
         else
         {
@@ -212,14 +212,14 @@ public sealed class InertiaResponse : IActionResult, IResult
             var viewRenderer = httpContext.RequestServices?.GetService<InertiaViewRenderer>();
             if (viewRenderer is not null)
             {
-                await viewRenderer.RenderAsync(httpContext, _rootView, _viewData);
+                await viewRenderer.RenderAsync(httpContext, _rootView, _viewData).ConfigureAwait(false);
             }
             else
             {
                 // Fallback when DI is not configured (e.g., unit tests without AddInertia)
                 var pageJson = page.ToJson(_jsonOptions);
                 await httpContext.Response.WriteAsync(
-                    $"<script data-page=\"app\" type=\"application/json\">{pageJson}</script><div id=\"app\"></div>");
+                    $"<script data-page=\"app\" type=\"application/json\">{pageJson}</script><div id=\"app\"></div>").ConfigureAwait(false);
             }
         }
     }
@@ -227,7 +227,7 @@ public sealed class InertiaResponse : IActionResult, IResult
     private async Task<InertiaPage> BuildPageAsync(HttpContext httpContext)
     {
         var resolver = new PropsResolver(httpContext, _component, _exposeSharedPropKeys);
-        var (resolvedProps, metadata) = await resolver.ResolveAsync(_sharedProps, _sharedProviders, _props);
+        var (resolvedProps, metadata) = await resolver.ResolveAsync(_sharedProps, _sharedProviders, _props).ConfigureAwait(false);
 
         return new InertiaPage
         {

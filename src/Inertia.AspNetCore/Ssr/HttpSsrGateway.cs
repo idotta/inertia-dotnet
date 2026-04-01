@@ -51,16 +51,16 @@ internal sealed class HttpSsrGateway : ISsrGateway
         try
         {
             using var content = new StringContent(json, Encoding.UTF8, "application/json");
-            using var response = await _httpClient.PostAsync(url, content, cancellationToken);
+            using var response = await _httpClient.PostAsync(url, content, cancellationToken).ConfigureAwait(false);
 
             if (!response.IsSuccessStatusCode)
             {
-                var errorJson = await response.Content.ReadAsStringAsync(cancellationToken);
+                var errorJson = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
                 HandleFailure(page, errorJson, null);
                 return null;
             }
 
-            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken);
+            var responseJson = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
             return ParseResponse(responseJson);
         }
         catch (Exception ex) when (ex is not SsrException)
@@ -76,7 +76,7 @@ internal sealed class HttpSsrGateway : ISsrGateway
         try
         {
             var url = $"{_options.SsrUrl.TrimEnd('/')}/health";
-            using var response = await _httpClient.GetAsync(url, cancellationToken);
+            using var response = await _httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
             return response.IsSuccessStatusCode;
         }
         catch

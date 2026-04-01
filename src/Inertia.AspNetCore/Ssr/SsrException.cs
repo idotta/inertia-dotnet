@@ -41,9 +41,9 @@ public sealed class SsrException : Exception
         SsrErrorType errorType, string? hint = null, string? browserApi = null,
         string? stack = null, string? sourceLocation = null, Exception? innerException = null)
     {
-        var message = $"SSR render failed for component [{component}]: {error}";
-        if (sourceLocation is not null)
-            message += $" at {sourceLocation}";
+        var message = sourceLocation is not null
+            ? $"SSR render failed for component [{component}]: {error} at {sourceLocation}"
+            : $"SSR render failed for component [{component}]: {error}";
         return new SsrException(message, component, errorType, hint, browserApi, stack, sourceLocation, innerException);
     }
 }

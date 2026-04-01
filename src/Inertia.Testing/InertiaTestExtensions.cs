@@ -192,4 +192,47 @@ public static class InertiaTestExtensions
         var response = await responseTask;
         return await response.AssertInertiaFlash(key, expected, httpClient);
     }
+
+    // ---- Flash missing assertions on redirect responses ----
+
+    /// <summary>
+    /// Follows a redirect response and asserts the resulting Inertia page does NOT have the given flash key.
+    /// </summary>
+    /// <param name="response">A redirect response (3xx) with a Location header.</param>
+    /// <param name="key">The flash data key to assert is missing.</param>
+    /// <param name="httpClient">The HttpClient used to follow the redirect.</param>
+    public static async Task<HttpResponseMessage> AssertInertiaFlashMissing(
+        this HttpResponseMessage response,
+        string key,
+        HttpClient httpClient)
+    {
+        ArgumentNullException.ThrowIfNull(response);
+        ArgumentException.ThrowIfNullOrWhiteSpace(key);
+        ArgumentNullException.ThrowIfNull(httpClient);
+
+        var location = response.Headers.Location?.ToString()
+            ?? throw new InvalidOperationException(
+                "Cannot follow redirect: response has no Location header.");
+
+        var followedResponse = await httpClient.GetAsync(location);
+        var assertable = await AssertableInertia.FromResponseAsync(followedResponse, httpClient);
+        assertable.MissingFlash(key);
+        return response;
+    }
+
+    /// <summary>
+    /// Follows a redirect response and asserts the resulting Inertia page does NOT have the given flash key.
+    /// Task overload for chaining with HttpClient calls.
+    /// </summary>
+    /// <param name="responseTask">A task returning a redirect response (3xx) with a Location header.</param>
+    /// <param name="key">The flash data key to assert is missing.</param>
+    /// <param name="httpClient">The HttpClient used to follow the redirect.</param>
+    public static async Task<HttpResponseMessage> AssertInertiaFlashMissing(
+        this Task<HttpResponseMessage> responseTask,
+        string key,
+        HttpClient httpClient)
+    {
+        var response = await responseTask;
+        return await response.AssertInertiaFlashMissing(key, httpClient);
+    }
 }

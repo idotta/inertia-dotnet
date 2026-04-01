@@ -38,22 +38,22 @@ public sealed class OptionalProp<T> : IIgnoreFirstLoad, IOnceable, IResolvablePr
     /// <summary>Resolves the property value, awaiting async callbacks if present.</summary>
     public async Task<T> ResolveAsync()
     {
-        if (_asyncCallback is not null) return await _asyncCallback();
+        if (_asyncCallback is not null) return await _asyncCallback().ConfigureAwait(false);
         if (_syncCallback is not null) return _syncCallback();
         return default!;
     }
 
     /// <inheritdoc />
-    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
+    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync().ConfigureAwait(false);
 
     // IServiceResolvableProp (explicit interface implementation)
     bool IServiceResolvableProp.HasServiceCallback => _serviceCallback is not null || _asyncServiceCallback is not null;
 
     async Task<object?> IServiceResolvableProp.ResolveWithServiceAsync(IServiceProvider serviceProvider)
     {
-        if (_asyncServiceCallback is not null) return await _asyncServiceCallback(serviceProvider);
+        if (_asyncServiceCallback is not null) return await _asyncServiceCallback(serviceProvider).ConfigureAwait(false);
         if (_serviceCallback is not null) return _serviceCallback(serviceProvider);
-        return await ResolveAsync();
+        return await ResolveAsync().ConfigureAwait(false);
     }
 
     // IOnceable (explicit interface implementation)

@@ -4,7 +4,7 @@ namespace Inertia.AspNetCore;
 /// Composition value object for deferred prop behavior. Used by DeferProp and ScrollProp.
 /// Replaces PHP DefersProps trait.
 /// </summary>
-internal record struct DeferInfo
+internal struct DeferInfo
 {
     /// <summary>Gets a value indicating whether the prop should be deferred from the initial page load.</summary>
     public bool ShouldDefer { get; private set; }

@@ -35,7 +35,7 @@ public sealed class ScrollMetadata : IScrollMetadataProvider
 
     /// <summary>Converts this metadata to a dictionary representation.</summary>
     /// <returns>A dictionary with keys "pageName", "previousPage", "nextPage", and "currentPage".</returns>
-    public IDictionary<string, object?> ToDictionary() => new Dictionary<string, object?>
+    public IReadOnlyDictionary<string, object?> ToDictionary() => new Dictionary<string, object?>
     {
         ["pageName"] = PageName,
         ["previousPage"] = PreviousPage,

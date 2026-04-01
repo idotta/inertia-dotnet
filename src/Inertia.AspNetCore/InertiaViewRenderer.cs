@@ -56,16 +56,19 @@ internal sealed class InertiaViewRenderer
 
         var tempData = new TempDataDictionary(httpContext, _tempDataProvider);
 
-        await using var writer = new StreamWriter(httpContext.Response.Body, leaveOpen: true);
-        var viewContext = new ViewContext(
-            actionContext,
-            viewResult.View,
-            viewDataDict,
-            tempData,
-            writer,
-            new HtmlHelperOptions());
+        var writer = new StreamWriter(httpContext.Response.Body, leaveOpen: true);
+        await using (writer.ConfigureAwait(false))
+        {
+            var viewContext = new ViewContext(
+                actionContext,
+                viewResult.View,
+                viewDataDict,
+                tempData,
+                writer,
+                new HtmlHelperOptions());
 
-        await viewResult.View.RenderAsync(viewContext);
-        await writer.FlushAsync();
+            await viewResult.View.RenderAsync(viewContext).ConfigureAwait(false);
+            await writer.FlushAsync().ConfigureAwait(false);
+        }
     }
 }

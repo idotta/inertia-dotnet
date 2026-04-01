@@ -1,4 +1,3 @@
-using System.Reflection;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -43,7 +42,7 @@ internal sealed class InertiaFactory : IInertia
             null => [],
             IDictionary<string, object?> d => new Dictionary<string, object?>(d),
             IInertiaPropertyProvider provider => new Dictionary<string, object?> { ["0"] = provider },
-            _ => ObjectToDictionary(props),
+            _ => PropHelpers.ObjectToDictionary(props),
         };
         return Render(component, propsDict);
     }
@@ -123,7 +122,7 @@ internal sealed class InertiaFactory : IInertia
                 throw new ArgumentException(
                     "Use Share(string key, object? value) to share a single keyed prop.", nameof(props));
             default:
-                Share(ObjectToDictionary(props));
+                Share(PropHelpers.ObjectToDictionary(props));
                 break;
         }
     }
@@ -244,7 +243,7 @@ internal sealed class InertiaFactory : IInertia
 
     /// <summary>
     /// Marks all TempData keys for retention. Equivalent to PHP's <c>Session::reflash()</c>.
-    /// Called by middleware on version mismatch and redirects to preserve all session flash data.
+    /// Called by middleware on version mismatch to preserve all session flash data.
     /// </summary>
     internal void ReflashAllTempData()
     {
@@ -252,6 +251,24 @@ internal sealed class InertiaFactory : IInertia
         if (httpContext is null) return;
         var tempData = _tempDataFactory.GetTempData(httpContext);
         tempData.Keep();
+    }
+
+    /// <summary>
+    /// Marks only Inertia-specific TempData keys for retention.
+    /// Called by middleware on redirects — preserves flash data, clear history, and preserve fragment
+    /// without extending the lifetime of non-Inertia TempData keys.
+    /// </summary>
+    internal void ReflashInertiaTempData()
+    {
+        var httpContext = _httpContextAccessor.HttpContext;
+        if (httpContext is null) return;
+        var tempData = _tempDataFactory.GetTempData(httpContext);
+        if (tempData.ContainsKey(InertiaSessionKeys.FlashData))
+            tempData.Keep(InertiaSessionKeys.FlashData);
+        if (tempData.ContainsKey(InertiaSessionKeys.ClearHistory))
+            tempData.Keep(InertiaSessionKeys.ClearHistory);
+        if (tempData.ContainsKey(InertiaSessionKeys.PreserveFragment))
+            tempData.Keep(InertiaSessionKeys.PreserveFragment);
     }
 
     internal string GetRootView() => _rootView ?? _options.RootView;
@@ -307,14 +324,4 @@ internal sealed class InertiaFactory : IInertia
         throw new ComponentNotFoundException(component);
     }
 
-    private static Dictionary<string, object?> ObjectToDictionary(object obj)
-    {
-        var dict = new Dictionary<string, object?>();
-        foreach (var prop in obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            if (prop.CanRead)
-                dict[prop.Name] = prop.GetValue(obj);
-        }
-        return dict;
-    }
 }

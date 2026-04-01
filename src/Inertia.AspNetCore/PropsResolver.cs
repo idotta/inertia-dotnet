@@ -58,7 +58,7 @@ internal sealed class PropsResolver
         foreach (var (key, value) in props)
             merged[key] = value;
 
-        var resolved = await ResolvePropsAsync(UnpackDotProps(merged));
+        var resolved = await ResolvePropsAsync(UnpackDotProps(merged)).ConfigureAwait(false);
         return (resolved, BuildMetadata());
     }
 
@@ -139,7 +139,7 @@ internal sealed class PropsResolver
             if (!_isPartial && ExcludeFromInitialResponse(prop, path))
                 continue;
 
-            var resolved = await ResolveValueAsync(prop, path, props);
+            var resolved = await ResolveValueAsync(prop, path, props).ConfigureAwait(false);
 
             // A closure may return a prop type. When this happens, unwrap one
             // level so the prop type can participate in filtering and metadata.
@@ -150,7 +150,7 @@ internal sealed class PropsResolver
                 if (!_isPartial && ExcludeFromInitialResponse(prop, path))
                     continue;
 
-                resolved = await ResolveValueAsync(prop, path, props);
+                resolved = await ResolveValueAsync(prop, path, props).ConfigureAwait(false);
             }
 
             CollectMetadata(prop, path);
@@ -161,7 +161,7 @@ internal sealed class PropsResolver
             if (resolved is IDictionary<string, object?> dict)
             {
                 result[key] = await ResolvePropsAsync(dict, path,
-                    parentWasResolved || prop is not IDictionary<string, object?>);
+                    parentWasResolved || prop is not IDictionary<string, object?>).ConfigureAwait(false);
             }
             else
             {
@@ -180,7 +180,7 @@ internal sealed class PropsResolver
         if (value is IScrollPropInternal scrollProp)
             scrollProp.ConfigureMergeIntent(_httpContext.Request);
 
-        value = await ResolveCallableAsync(value);
+        value = await ResolveCallableAsync(value).ConfigureAwait(false);
 
         if (value is IInertiaPropertyValueProvider pvp)
         {
@@ -204,10 +204,10 @@ internal sealed class PropsResolver
             return value;
 
         if (value is IServiceResolvableProp { HasServiceCallback: true } serviceResolvable)
-            return await serviceResolvable.ResolveWithServiceAsync(_httpContext.RequestServices);
+            return await serviceResolvable.ResolveWithServiceAsync(_httpContext.RequestServices).ConfigureAwait(false);
 
         if (value is IResolvableProp prop)
-            return await prop.ResolveAsObjectAsync();
+            return await prop.ResolveAsObjectAsync().ConfigureAwait(false);
 
         if (value is Delegate d
             && d.Method.GetParameters().Length == 0

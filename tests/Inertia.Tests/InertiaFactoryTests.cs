@@ -111,8 +111,8 @@ public class InertiaFactoryTests
             factory.Share(new { Auth = "user", Locale = "en" });
 
             var shared = factory.GetShared();
-            shared.Should().ContainKey("Auth").WhoseValue.Should().Be("user");
-            shared.Should().ContainKey("Locale").WhoseValue.Should().Be("en");
+            shared.Should().ContainKey("auth").WhoseValue.Should().Be("user");
+            shared.Should().ContainKey("locale").WhoseValue.Should().Be("en");
         }
 
         [Fact]
@@ -246,8 +246,8 @@ public class InertiaFactoryTests
             var response = factory.Render("Test/Page", new { Name = "test", Age = 30 });
 
             response.Should().NotBeNull();
-            response.Props.Should().ContainKey("Name").WhoseValue.Should().Be("test");
-            response.Props.Should().ContainKey("Age").WhoseValue.Should().Be(30);
+            response.Props.Should().ContainKey("name").WhoseValue.Should().Be("test");
+            response.Props.Should().ContainKey("age").WhoseValue.Should().Be(30);
         }
 
         [Fact]

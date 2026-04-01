@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace Inertia.AspNetCore;
 
 /// <summary>
@@ -37,7 +35,7 @@ public sealed class InertiaExceptionResult
             null => new Dictionary<string, object?>(),
             IDictionary<string, object?> d => new Dictionary<string, object?>(d),
             IInertiaPropertyProvider provider => new Dictionary<string, object?> { ["0"] = provider },
-            _ => ObjectToDictionary(props),
+            _ => PropHelpers.ObjectToDictionary(props),
         };
         return new InertiaExceptionResult { Component = component, Props = propsDict };
     }
@@ -72,14 +70,4 @@ public sealed class InertiaExceptionResult
         return this;
     }
 
-    private static Dictionary<string, object?> ObjectToDictionary(object obj)
-    {
-        var dict = new Dictionary<string, object?>();
-        foreach (var prop in obj.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
-        {
-            if (prop.CanRead)
-                dict[prop.Name] = prop.GetValue(obj);
-        }
-        return dict;
-    }
 }

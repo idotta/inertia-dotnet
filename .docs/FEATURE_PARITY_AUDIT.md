@@ -5,7 +5,7 @@
 **Verified by**: dotnet-core-expert, csharp-developer, 3x code-explorer agents
 **Cross-referenced against**: Inertia.js v3 protocol documentation (inertiajs.com/docs/v3/)
 **Baseline**: 682 tests passing (610 Inertia.Tests + 72 Inertia.Testing.Tests)
-**Current**: 918 tests passing (783 Inertia.Tests + 135 Inertia.Testing.Tests) — after Phase F
+**Current**: 919 tests passing (784 Inertia.Tests + 135 Inertia.Testing.Tests) — after Final Verification fixes
 
 ---
 
@@ -19,8 +19,13 @@ The audit identified **38 gaps** across 8 functional areas, plus **1 protocol ex
 2 original findings were removed as false positives during verification.
 1 protocol-level feature (Precognition) identified — beyond adapter scope, tracked separately.
 
-**All critical and important gaps are resolved.** The only remaining items are:
+**All critical and important gaps are resolved.** Remaining:
 1. **MIN-12** — No recursion into indexed arrays in PropsResolver (documented intentional divergence — will not fix)
+
+**Final verification** (4 parallel code-reviewer agents, full side-by-side review) confirmed parity across all functional areas with 3 actionable findings:
+- ~~**VER-01** [BUG]: Version mismatch URL omits `PathBase`~~ FIXED
+- ~~**VER-02** [BEHAVIORAL]: Reflash on redirect keeps all TempData, not just Inertia flash~~ FIXED
+- ~~**VER-03** [GAP]: `AssertInertiaFlashMissing` extension method missing~~ FIXED
 
 ---
 
@@ -221,3 +226,77 @@ Features that exist in the Inertia ecosystem as standalone packages, not part of
 21. ~~**IMP-19** — Expose `GetVersion()` on `IInertia`~~
 22. ~~**MIN-15** — `Back()` convenience method~~
 23-34. ~~All remaining MIN-* items (MIN-01–MIN-10, MIN-13)~~
+
+---
+
+## Final Verification (2026-03-31)
+
+Complete side-by-side review of ALL PHP source files against ALL C# source files by 4 parallel code-reviewer agents, each covering a functional slice: (1) API & Response Lifecycle, (2) Prop Types & PropsResolver, (3) SSR, Config & DI, (4) Testing & Supporting Types.
+
+### Verified Areas (confirmed parity)
+
+- **ResponseFactory ↔ IInertia/InertiaFactory**: All 20+ public methods have C# equivalents
+- **Response ↔ InertiaResponse**: Page object JSON structure matches (all fields, camelCase, conditional inclusion)
+- **Middleware**: Version check, 302→303 conversion, fragment redirect, prefetch detection, validation errors, Vary header, encrypt history
+- **All 6 prop types**: AlwaysProp, OptionalProp, OnceProp, DeferProp, MergeProp, ScrollProp — fluent APIs, interfaces, resolution behavior all match
+- **PropsResolver**: Partial filtering (only/except with bidirectional prefix matching), initial load exclusion, AlwaysProp bypass, once-prop exclusion, reset, metadata collection (all 8 categories), dot-notation unpacking, prop-type unwrap after resolution
+- **SSR**: Dispatch URLs (production + hot mode), health check, bundle detection, error parsing (all 6 fields), SsrRenderFailed context, SsrState dispatch caching
+- **Config**: All 11 PHP config keys have C# InertiaOptions equivalents with matching defaults
+- **DI lifetimes**: Correct (singleton for stateless, scoped for per-request)
+- **Headers & session keys**: All constants map 1-to-1 with identical string values
+- **Testing**: All AssertableInertia assertion methods (component, url, version, has, missing, where, whereNot, whereType, whereContains, hasAny, scope, first, each, etc, flash), ReloadRequest headers, test extensions
+- **Supporting types**: PropertyContext, RenderContext, provider interfaces, ScrollMetadata, ComponentNotFoundException, Tag Helpers
+
+### New Findings
+
+#### ~~VER-01: Version mismatch URL omits PathBase~~ FIXED
+- **Resolution**: Changed `HandleVersionChange` default to include `PathBase` in URL: `$"{ctx.Request.PathBase}{ctx.Request.Path}{ctx.Request.QueryString}"`. Added test `InvokeAsync_VersionMismatch_OnGet_IncludesPathBaseInLocation`.
+
+#### ~~VER-02: Reflash on redirect keeps ALL TempData~~ FIXED
+- **Resolution**: Split into `ReflashAllTempData()` (version mismatch — keeps all keys via `tempData.Keep()`) and `ReflashInertiaTempData()` (redirects — selectively keeps only `FlashData`, `ClearHistory`, `PreserveFragment` keys). Updated redirect path to use selective method.
+
+#### ~~VER-03: `AssertInertiaFlashMissing` extension missing~~ FIXED
+- **Resolution**: Added `AssertInertiaFlashMissing(key, httpClient)` + Task overload to `InertiaTestExtensions`. Follows redirect, parses Inertia page, calls `MissingFlash(key)`.
+
+#### VER-04: `Once()` missing `as`/`until` shorthand parameters [CONVENIENCE]
+- **Confidence**: 90%
+- **PHP**: `->once(as: 'key', until: 3600)` single-call convenience
+- **C#**: Requires chaining `.Once().As("key").Until(3600)` — functionally equivalent, but different API shape
+- **Fix**: Add `Once(bool value = true, string? key = null, TimeSpan? until = null)` overload to `OnceInfo` + prop types
+
+#### VER-05: `Share()` with dot-notation keys stores flat key [BEHAVIORAL]
+- **Confidence**: 82%
+- **PHP**: `Arr::set($props, 'user.name', value)` creates nested `['user' => ['name' => value]]`
+- **C#**: `_sharedProps["user.name"] = value` stores literal key
+- **Impact**: Low — consumers typically use `Share(new { User = ... })` not dot-notation keys
+
+#### VER-06: SSR path exclusion only supports trailing `/*` wildcards [LIMITATION]
+- **Confidence**: 90%
+- **PHP**: Uses `fnmatch()`-style glob matching via `Str::is()` — supports `*/admin`, `api/*/users`
+- **C#**: Only handles `pattern/*` suffix and exact match
+- **Impact**: Low — common patterns (`/admin/*`) work; exotic mid-path wildcards don't
+
+### Remaining API Surface Gaps (Low Priority)
+
+| ID | Gap | Confidence | Notes |
+|----|-----|-----------|-------|
+| VER-07 | No per-request `ResolveUrlUsing()` on `IInertia` | 83% | `InertiaOptions.UrlResolver` covers startup config; per-request override not exposed |
+| VER-08 | `Location()` doesn't accept redirect result objects | 80% | Callers in .NET have URL strings directly |
+| VER-09 | `Back()` missing `headers` parameter | 80% | PHP `$headers` param rarely used |
+| VER-10 | `ScrollMetadata.FromPaginator()` has no equivalent | 82% | No .NET standard paginator type; acceptable divergence |
+
+### Accepted Divergences (from verification)
+
+| ID | Issue | Rationale |
+|----|-------|-----------|
+| VER-04 | `Once()` missing `as`/`until` shorthand params | C# idiomatic chaining: `.Once().As("key").Until(3600)` — dismissed |
+| VER-05 | `Share("user.name", val)` stores flat key (PHP `Arr::set` creates nested) | C# idiom is `Share(new { User = new { Name = val } })` via `Share(object)` overload |
+| VER-06 | SSR path exclusion only supports trailing `/*` wildcards | Common patterns work; mid-path/leading wildcards are exotic and undocumented |
+| VER-07 | No per-request `ResolveUrlUsing()` on `IInertia` | `InertiaOptions.UrlResolver` delegate covers startup config |
+| VER-08 | `Location()` doesn't accept redirect result objects | .NET callers have URL strings directly |
+| VER-09 | `Back()` missing `headers` parameter | Rarely used in PHP; callers can set headers on the response directly |
+| VER-10 | No `ScrollMetadata.FromPaginator()` | No .NET standard paginator type — manual construction required |
+
+### Verdict
+
+**Feature parity is confirmed.** All 3 actionable findings (VER-01, VER-02, VER-03) have been fixed. The remaining items (VER-04 through VER-10) are intentional .NET idiom divergences or low-impact convenience gaps that do not affect the parity claim.

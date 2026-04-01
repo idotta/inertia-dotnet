@@ -26,6 +26,6 @@ internal interface IScrollPropInternal
     /// <summary>Configures merge intent based on the infinite scroll merge intent header.</summary>
     void ConfigureMergeIntent(HttpRequest? request);
 
-    /// <summary>Returns scroll metadata as a dictionary.</summary>
-    IDictionary<string, object?> Metadata();
+    /// <summary>Returns scroll metadata as a read-only dictionary.</summary>
+    IReadOnlyDictionary<string, object?> Metadata();
 }

@@ -21,7 +21,7 @@ public sealed class InertiaAppTagHelper : TagHelper
 
     /// <summary>The current Razor view context.</summary>
     [HtmlAttributeNotBound]
-    [ViewContextAttribute]
+    [ViewContext]
     public ViewContext ViewContext { get; set; } = null!;
 
     /// <inheritdoc />
@@ -45,7 +45,7 @@ public sealed class InertiaAppTagHelper : TagHelper
         // Attempt SSR dispatch (respects path exclusions)
         SsrResponse? ssrResponse = null;
         if (ssrState is not null && !ssrState.IsPathExcluded(httpContext.Request.Path))
-            ssrResponse = await ssrState.DispatchAsync();
+            ssrResponse = await ssrState.DispatchAsync().ConfigureAwait(false);
 
         if (ssrResponse is not null)
         {

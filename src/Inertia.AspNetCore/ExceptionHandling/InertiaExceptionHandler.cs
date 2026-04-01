@@ -73,7 +73,7 @@ internal sealed class InertiaExceptionHandler : IExceptionHandler
 
             httpContext.Response.StatusCode = statusCode;
             var response = inertia.Render(result.Component, result.Props ?? new Dictionary<string, object?>());
-            await response.ExecuteAsync(httpContext);
+            await response.ExecuteAsync(httpContext).ConfigureAwait(false);
             return true;
         }
 

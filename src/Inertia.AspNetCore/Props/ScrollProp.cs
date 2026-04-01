@@ -106,7 +106,7 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
         if (!_hasResolved)
         {
             if (_asyncCallback is not null)
-                _resolved = await _asyncCallback();
+                _resolved = await _asyncCallback().ConfigureAwait(false);
             else if (_syncCallback is not null)
                 _resolved = _syncCallback();
             else
@@ -117,7 +117,7 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
     }
 
     /// <inheritdoc />
-    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync();
+    async Task<object?> IResolvableProp.ResolveAsObjectAsync() => await ResolveAsync().ConfigureAwait(false);
 
     // IServiceResolvableProp (explicit interface implementation)
     bool IServiceResolvableProp.HasServiceCallback => _serviceCallback is not null || _asyncServiceCallback is not null;
@@ -127,11 +127,11 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
         if (!_hasResolved)
         {
             if (_asyncServiceCallback is not null)
-                _resolved = await _asyncServiceCallback(serviceProvider);
+                _resolved = await _asyncServiceCallback(serviceProvider).ConfigureAwait(false);
             else if (_serviceCallback is not null)
                 _resolved = _serviceCallback(serviceProvider);
             else if (_asyncCallback is not null)
-                _resolved = await _asyncCallback();
+                _resolved = await _asyncCallback().ConfigureAwait(false);
             else if (_syncCallback is not null)
                 _resolved = _syncCallback();
             else
@@ -147,7 +147,7 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
 
     // IScrollPropInternal (explicit — return type differs from public fluent API)
     void IScrollPropInternal.ConfigureMergeIntent(HttpRequest? request) => ConfigureMergeIntent(request);
-    IDictionary<string, object?> IScrollPropInternal.Metadata() => Metadata();
+    IReadOnlyDictionary<string, object?> IScrollPropInternal.Metadata() => Metadata();
 
     /// <summary>Mark as deferred, optionally in a specific group.</summary>
     public ScrollProp<T> Defer(string? group = null) { _defer.Defer(group); return this; }
@@ -166,9 +166,9 @@ public sealed class ScrollProp<T> : MergeablePropBase, IDeferrable, IResolvableP
         return this;
     }
 
-    /// <summary>Returns scroll metadata as a dictionary.</summary>
+    /// <summary>Returns scroll metadata as a read-only dictionary.</summary>
     /// <exception cref="InvalidOperationException">Thrown when no metadata provider or factory is configured.</exception>
-    public IDictionary<string, object?> Metadata()
+    public IReadOnlyDictionary<string, object?> Metadata()
     {
         var provider = ResolveMetadataProvider();
         return new Dictionary<string, object?>
