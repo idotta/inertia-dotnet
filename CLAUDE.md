@@ -78,22 +78,14 @@ MergeablePropBase  (abstract) : IMergeable
   └── ScrollProp<T>: IDeferrable  [contains DeferInfo]
 ```
 
-### Implementation Phases
+### Feature Parity Status
 
-The project follows a phased plan (see `.docs/PLAN.md`). Current status:
+All implementation phases (1–10) and audit fix phases (A–F) are **complete**. Feature parity with inertia-laravel v3.0.1 has been verified by side-by-side code review (see `.docs/FEATURE_PARITY_AUDIT.md`). The only remaining intentional divergence is MIN-12 (no recursion into indexed arrays in PropsResolver — C# `IDictionary` vs PHP `is_array()` semantic difference).
 
-- **Phase 1** (constants, options, interfaces, contexts) — complete
-- **Phase 2** (property types + trait compositions) — complete
-- **Phase 3** (response factory + response) — complete
-- **Phase 4** (PropsResolver) — in progress
-- **Phase 5** (middleware + validation pipeline) — complete
-- **Phase 6** (SSR) — complete
-- **Phase 7** (DI registration, Tag Helpers, view rendering) — complete
-- **Phase 8** (testing package: AssertableInertia, InertiaTestExtensions, ReloadRequest) — complete
-- **Phase 9** (porting PHP integration tests) — complete
-- **Phase 10** (exception handling: InertiaExceptionHandler, InertiaExceptionResult, InertiaExceptionContext) — complete
-
-Subsequent phases build incrementally — check the plan for current status before starting work.
+Known accepted divergences from PHP:
+- `Share("user.name", val)` stores a flat key (PHP's `Arr::set` creates nested structure) — use `Share(new { User = new { Name = val } })` instead
+- SSR path exclusion only supports trailing `/*` wildcards (PHP supports fnmatch-style mid-path wildcards)
+- `Once()` requires chaining (`.Once().As("key").Until(3600)`) — PHP allows shorthand params
 
 ## Test Conventions
 
@@ -117,5 +109,9 @@ Subsequent phases build incrementally — check the plan for current status befo
 - Prop types expose only `ResolveAsync()` — no sync `Resolve()`. PropsResolver (Phase 4) is async, so this is the only resolution path
 - `InertiaPage.DefaultJsonOptions` includes `RuntimeTypeJsonConverter` for polymorphic `object?` serialization
 - `InertiaFactory` is `internal sealed` — consumers interact via `IInertia` interface
-- Initial page load writes minimal `<script data-page="app" type="application/json">{json}</script><div id="app"></div>` HTML — full Razor view rendering deferred to Phase 7
+- Initial page load writes `<script data-page="{id}" type="application/json">{json}</script><div id="{id}"></div>` HTML (v3 format)
 - XML doc comments on all public API surface
+- `ConfigureAwait(false)` on ALL `await` calls in library code (not test code) — library must be context-agnostic
+- `PropHelpers.ObjectToDictionary()` is the shared helper for object-to-dict reflection — applies `JsonNamingPolicy.CamelCase` to keys. Do not duplicate.
+- `Func<IServiceProvider, T>` overloads on prop types enable DI-injected callbacks via `IServiceResolvableProp` interface
+- `InertiaBackResult` implements both `IActionResult` and `IResult` (same dual-result pattern as `InertiaLocationResult`)

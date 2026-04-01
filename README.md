@@ -4,65 +4,154 @@
 [![Build Status](https://github.com/idotta/inertia-dotnet/workflows/Build/badge.svg)](https://github.com/idotta/inertia-dotnet/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-A .NET adapter for [Inertia.js](https://inertiajs.com/). Build modern single-page applications using classic server-side routing and controllers.
-
-> **Note:** This project is currently in active development. See [Migration Status](#migration-status) for details.
+A .NET adapter for [Inertia.js](https://inertiajs.com/) — build modern single-page applications using classic server-side routing and controllers. Feature-complete port of [inertia-laravel](https://github.com/inertiajs/inertia-laravel) v3.0.1 to ASP.NET Core 10 / C# 14.
 
 ## Features
 
+- Full [Inertia.js v3 protocol](https://inertiajs.com/docs/v3/core-concepts/the-protocol) support
+- All property types: `Always`, `Optional`, `Defer`, `Merge`, `DeepMerge`, `Once`, `Scroll`
+- Partial reloads with dot-notation filtering
+- Server-side rendering (SSR) with Vite hot reload support
+- History encryption, flash data, shared props
+- Dual MVC (`IActionResult`) and minimal API (`IResult`) support
+- Exception handling with custom error pages
+- Testing package with `AssertableInertia` assertions
+- 919 tests, verified side-by-side against inertia-laravel
+
 ## Quick Start
 
-## Documentation
+### 1. Install
 
-📚 **Comprehensive guides available:**
+```bash
+dotnet add package Inertia.AspNetCore
+```
 
-- **[Getting Started](docs/getting-started.md)** - Detailed setup guide
-- **[Responses](docs/responses.md)** - Working with Inertia responses
-- **[Property Types](docs/properties.md)** - Optional, Deferred, Merge, and more
-- **[Middleware](docs/middleware.md)** - Request handling and shared data
-- **[Server-Side Rendering](docs/ssr-setup.md)** - SSR configuration and setup
-- **[Testing](docs/testing.md)** - Testing your Inertia applications
-- **[Migration from Laravel](docs/migration-from-laravel.md)** - Laravel to .NET guide
+### 2. Register services
 
-## Project Goal
+```csharp
+builder.Services.AddInertia(options =>
+{
+    options.RootView = "~/Views/App.cshtml";
+});
+```
 
-This project aims to stay feature-complete and on par with [inertia-laravel](https://github.com/inertiajs/inertia-laravel). We track the Laravel adapter as a submodule and periodically sync new features and improvements.
+### 3. Add middleware
 
-## Migration Status
+```csharp
+app.UseInertia();
+```
+
+### 4. Create your root view (`Views/App.cshtml`)
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <inertia-head></inertia-head>
+</head>
+<body>
+    <inertia-app></inertia-app>
+    <script src="/js/app.js"></script>
+</body>
+</html>
+```
+
+### 5. Render pages
+
+```csharp
+// MVC Controller
+public IActionResult Index()
+{
+    return Inertia.Render("Users/Index", new { Users = users });
+}
+
+// Minimal API
+app.MapGet("/users", (IInertia inertia) =>
+    inertia.Render("Users/Index", new { Users = users }));
+
+// Route-level shorthand
+app.MapInertia("/about", "About");
+```
+
+## Property Types
+
+```csharp
+inertia.Render("Dashboard", new Dictionary<string, object?>
+{
+    ["users"]    = Prop.Defer(() => db.GetUsersAsync()),           // Lazy-loaded after initial render
+    ["stats"]    = Prop.Always(() => GetStats()),                  // Always included, even in partials
+    ["settings"] = Prop.Optional(() => GetSettings()),             // Only on explicit partial request
+    ["items"]    = Prop.Merge(() => GetPage(page)),                // Merged with client-side data
+    ["feed"]     = Prop.Scroll(() => GetFeed(page), "data"),      // Infinite scroll pagination
+    ["config"]   = Prop.Once(() => LoadConfig()),                  // Cached on client across navigations
+});
+```
+
+## Shared Data & Flash
+
+```csharp
+// In middleware configuration
+options.SharedPropsProvider = (ctx, sp) => new Dictionary<string, object?>
+{
+    ["auth"] = new { User = ctx.User.Identity?.Name },
+};
+
+// Per-request
+inertia.Share("locale", "en");
+inertia.Flash("message", "Settings saved!");
+```
+
+## Configuration
+
+Configure via `AddInertia()` or `appsettings.json` under the `"Inertia"` section:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `RootView` | `~/Views/App.cshtml` | Razor view for initial page loads |
+| `EncryptHistory` | `false` | Encrypt browser history state |
+| `SsrEnabled` | `true` | Enable server-side rendering |
+| `SsrUrl` | `http://127.0.0.1:13714` | SSR server URL |
+| `VersionProvider` | `null` | `Func<HttpContext, string>` for asset versioning |
+| `ValidationErrorProvider` | `null` | `Func<HttpContext, string?, IDictionary>` for validation errors |
+| `SharedPropsProvider` | `null` | `Func<HttpContext, IServiceProvider, IDictionary>` for shared props |
+
+See `InertiaOptions` for the full list including SSR, page validation, and exception handling options.
+
+## Testing
+
+```bash
+dotnet add package Inertia.Testing
+```
+
+```csharp
+var response = await client.GetAsync("/users");
+
+await response.AssertInertia(page =>
+{
+    page.Component("Users/Index");
+    page.Has("users", 10);
+    page.Where("users.0.name", "Alice");
+    page.MissingFlash("error");
+});
+```
+
+## Project Structure
+
+| Project | Purpose |
+|---------|---------|
+| `src/Inertia.AspNetCore` | Main library (NuGet package) |
+| `src/Inertia.Testing` | Test assertions for consumers (NuGet package) |
+| `tests/Inertia.Tests` | Library tests |
+| `tests/Inertia.Testing.Tests` | Testing package tests |
 
 ## inertia-laravel Submodule
 
-This repository includes the official Laravel adapter as a git submodule to:
-
-- Track the reference implementation
-- Monitor for new features and updates
-- Ensure feature parity with the Laravel ecosystem
-
-**Current Tracked Version:** v3.0.1
-
-### Updating the Submodule
-
-To update the inertia-laravel submodule to the latest version:
+The official Laravel adapter is tracked as a git submodule at `inertia-laravel/` for reference during development. **Current tracked version:** v3.0.1.
 
 ```bash
 git submodule update --remote inertia-laravel
 ```
 
-After updating, review changes and migrate new features to C#. See [MIGRATION.md](MIGRATION.md) for guidelines.
-
-## Examples
-
-Check out our [sample projects](samples/) to see Inertia.js in action:
-
-- **InertiaMinimal** - Minimal setup example
-- **InertiaReact** - Full React application
-- **InertiaVue** - Full Vue 3 application  
-- **InertiaSsr** - Server-side rendering example
-
-## Advanced Features
-
-## Development & Contributing
-
 ## License
 
-MIT License - Same as inertia-laravel
+MIT License — same as inertia-laravel.
